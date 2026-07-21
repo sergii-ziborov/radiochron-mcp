@@ -8,9 +8,10 @@ AI assistant local Wi-Fi diagnostics over stdio: connection-history **verdicts**
 instead of data dumps, live signal sampling, and native WLAN collectors.
 
 Built on the [`radiochron`](https://crates.io/crates/radiochron) library. Pure
-Rust, **no MCP SDK**, three dependencies, a ~724 KB binary, and **no build
-toolchain beyond a stock [`rustup`](https://rustup.rs)**. Nothing writes,
-nothing reads saved passwords, nothing leaves the machine.
+Rust, **no MCP SDK**, three dependencies, a ~1.0 MB binary, and **no build
+toolchain beyond a stock [`rustup`](https://rustup.rs)**. The optional chronicle
+writes only its rotating local JSONL file; saved passwords are never read and
+nothing leaves the machine.
 
 ## Install
 
@@ -46,21 +47,27 @@ Or add it to any MCP client config directly:
 }
 ```
 
-No arguments, no configuration, no environment variables. The transport is
+No arguments are required. `RADIOCHRON_CHRONICLE_PATH` optionally overrides
+the default `%LOCALAPPDATA%\RadioChron\chronicle.jsonl` path. The transport is
 newline-delimited JSON-RPC 2.0 over stdio.
 
 ## Tools
 
-Six read-only tools. Nothing here changes system state.
+Ten tools with machine-readable input/output schemas, structured results and
+truthful MCP safety annotations.
 
 | Tool | Arguments | Returns |
 |---|---|---|
 | `wifi_status` | — | Every WLAN interface and, for the associated one: SSID, BSSID, PHY type (`ht`/`vht`/`he`/`eht`), signal quality, estimated RSSI in dBm, rx/tx rates |
-| `wifi_networks` | `refresh_scan?: boolean`<br>`detail?: "summary" \| "full"` | `{count, refreshed, detail, networks}` — nearby BSS entries with SSID, BSSID, band, channel, real RSSI in dBm, PHY type, security and capability flags |
+| `wifi_networks` | `refresh_scan?: boolean`<br>`detail?: "summary" \| "full"` | Nearby BSS plus cache age, scan completion, per-interface errors, WPA2/WPA3/OWE, cipher, PMF, width and load fields |
 | `wifi_analyze` | `refresh_scan?: boolean` | **Findings, not records.** Co-channel contention, crowded-channel association, weak signal, band-steering and roam candidates, insecure security, hidden SSIDs, scan-quality problems |
 | `wifi_history` | `within_seconds?: number`<br>`max_events?: number`<br>`include_events?: boolean` | **Why it dropped earlier.** Reads the WLAN AutoConfig event log and returns a verdict: reconnect loops, an AP repeatedly failing key exchange, a suspected credential mismatch |
-| `wifi_sample` | `duration_seconds?: 1..120`<br>`interval_ms?: >=250` | Connection dynamics over a window: RSSI min/max/mean and swing, rx-rate range, distinct BSSIDs, roam count, disconnected samples |
-| `wifi_scan` | — | Triggers a driver scan on each interface; returns how many accepted |
+| `wifi_sample` | `interface_guid?: string`<br>`duration_seconds?: 1..120`<br>`interval_ms?: 250..60000` | Cancelable sampling with progress; collector errors remain distinct from disconnects |
+| `wifi_scan` | — | Triggers a standard scan and waits for each Windows completion/failure notification |
+| `chronicle_start` | `interval_seconds?: 1..300`<br>`signal_threshold_db?: 1..50` | Starts the local rotating change-only recorder |
+| `chronicle_stop` | — | Stops and flushes the recorder |
+| `chronicle_status` | — | Recorder state, path and latest error |
+| `chronicle_recent` | `max_entries?: 1..1000` | Recent entries from active and rotated files |
 
 **Prefer `wifi_analyze`.** On a real 43-BSS environment it answers in ~800 bytes
 where the full BSS list costs ~41 KB — because it returns the conclusion, not
@@ -69,8 +76,8 @@ wrong; that is part of the payload on purpose, since a bare severity invites
 over-trust and several of these signals are genuinely weaker than they look.
 
 Two behaviours worth knowing about `wifi_networks`: the driver cache can be
-empty, so a first empty read is retried once behind a real scan (the `refreshed`
-field says whether it was) rather than reported as "no networks"; and `summary`
+empty, so a first empty read is retried once behind a real scan (the `refresh`
+object says what completed) rather than reported as "no networks"; and `summary`
 is the default — ask for `full` (raw IEs, rates, capability bits) only when you
 need those fields.
 

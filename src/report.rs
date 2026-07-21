@@ -5,7 +5,7 @@
 //! zero-friction path for "here is what my Wi-Fi looks like", while the tools
 //! remain the path for model-initiated and parameterised queries.
 //!
-//! Deliberately serves the CACHED scan. A read must never trigger a four-second
+//! Deliberately serves the CACHED scan. A read must never trigger a hidden
 //! scan: clients may read resources speculatively or on every turn, and a hidden
 //! multi-second stall on a passive read is bad behaviour. Freshness is made
 //! legible in the body instead.

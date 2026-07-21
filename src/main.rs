@@ -13,13 +13,37 @@
 //! all diagnostics must go to stderr.
 
 #[cfg(windows)]
-mod mcp;
+mod chronicle;
+#[cfg(windows)]
+mod mcp_server;
 #[cfg(windows)]
 mod report;
 
 #[cfg(windows)]
 fn main() -> anyhow::Result<()> {
-    mcp::serve_stdio()
+    match std::env::args().nth(1).as_deref() {
+        Some("--version" | "-V") => {
+            println!("radiochron {}", env!("CARGO_PKG_VERSION"));
+            return Ok(());
+        }
+        Some("--build-info") => {
+            println!(
+                "{{\"name\":\"radiochron\",\"version\":\"{}\",\"git_sha\":\"{}\"}}",
+                env!("CARGO_PKG_VERSION"),
+                env!("RADIOCHRON_GIT_SHA")
+            );
+            return Ok(());
+        }
+        Some("--help" | "-h") => {
+            println!(
+                "radiochron [--version|--build-info]\n\nWithout arguments, serves MCP over stdio."
+            );
+            return Ok(());
+        }
+        Some(other) => anyhow::bail!("unknown argument: {other}"),
+        None => {}
+    }
+    mcp_server::serve_stdio()
 }
 
 #[cfg(not(windows))]

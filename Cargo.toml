@@ -10,6 +10,7 @@ rust-version.workspace = true
 authors.workspace = true
 license.workspace = true
 repository.workspace = true
+build = "build.rs"
 
 # The crate is radiochron-mcp; the binary users install stays `radiochron`.
 # A `radiochron-mcp.exe` in a client config reads as internal plumbing.
