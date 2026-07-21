@@ -9,9 +9,9 @@ fn main() {
 
     println!("cargo:rustc-env=RADIOCHRON_GIT_SHA={sha}");
     println!("cargo:rerun-if-env-changed=RADIOCHRON_GIT_SHA");
-    println!("cargo:rerun-if-changed=../../.git/HEAD");
+    println!("cargo:rerun-if-changed=.git/HEAD");
     if let Some(reference) = git_output(&["symbolic-ref", "HEAD"]) {
-        println!("cargo:rerun-if-changed=../../.git/{reference}");
+        println!("cargo:rerun-if-changed=.git/{reference}");
     }
 }
 

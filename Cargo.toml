@@ -1,31 +1,29 @@
 [package]
 name = "radiochron-mcp"
-description = "Model Context Protocol server exposing local Wi-Fi diagnostics over stdio. Pure Rust, no SDK, three dependencies."
+description = "Model Context Protocol server exposing local Wi-Fi diagnostics over stdio. Pure Rust, no MCP SDK."
 keywords = ["mcp", "wifi", "wlan", "diagnostics", "model-context-protocol"]
 categories = ["command-line-utilities", "network-programming"]
 readme = "README.md"
-version.workspace = true
-edition.workspace = true
-rust-version.workspace = true
-authors.workspace = true
-license.workspace = true
-repository.workspace = true
+version = "0.2.0"
+edition = "2021"
+rust-version = "1.78"
+authors = ["Sergii Ziborov"]
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/sergii-ziborov/radiochron-mcp"
 build = "build.rs"
 
-# The crate is radiochron-mcp; the binary users install stays `radiochron`.
-# A `radiochron-mcp.exe` in a client config reads as internal plumbing.
 [[bin]]
 name = "radiochron"
 path = "src/main.rs"
 
 [dependencies]
-radiochron = { path = "../radiochron", version = "0.2.0" }
-serde = { workspace = true }
-serde_json = { workspace = true }
-anyhow = { workspace = true }
+# Pin the engine revision so a released MCP binary always has a reproducible
+# collector/analysis implementation independent of future core changes.
+radiochron = { git = "https://github.com/sergii-ziborov/radiochron", rev = "f0a6abf2ebfd970ca5baeff8c0a83259db0b5b7d", version = "0.2.0" }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+anyhow = "1"
 
-# No MCP SDK. The stdio transport is newline-delimited JSON-RPC 2.0 with a
-# handful of methods — a few hundred lines over serde_json. The official rmcp
-# crate would add tokio, schemars and a mandatory chrono whose `clock` feature
-# depends on windows-link/raw-dylib, reintroducing the exact build requirement
-# this project exists to avoid.
+[profile.release]
+lto = "thin"
+strip = true

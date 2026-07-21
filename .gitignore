@@ -1,0 +1,12 @@
+/target
+/data
+*.sqlite
+*.sqlite-wal
+*.sqlite-shm
+.idea/
+.vscode/
+*.swp
+Thumbs.db
+Desktop.ini
+
+# Cargo.lock is committed because this repository ships a binary.

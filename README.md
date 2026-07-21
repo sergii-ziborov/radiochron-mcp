@@ -7,11 +7,16 @@ AI assistant local Wi-Fi diagnostics over stdio: connection-history **verdicts**
 (reconnect loops, an AP failing key exchange, a credential mismatch), findings
 instead of data dumps, live signal sampling, and native WLAN collectors.
 
-Built on the [`radiochron`](https://crates.io/crates/radiochron) library. Pure
-Rust, **no MCP SDK**, three dependencies, a ~1.0 MB binary, and **no build
+Built on the [`radiochron`](https://github.com/sergii-ziborov/radiochron) library. Pure
+Rust, **no MCP SDK**, three third-party dependencies, a ~1.0 MB binary, and **no build
 toolchain beyond a stock [`rustup`](https://rustup.rs)**. The optional chronicle
 writes only its rotating local JSONL file; saved passwords are never read and
 nothing leaves the machine.
+
+The engine, npm launcher and website live independently in
+[`radiochron`](https://github.com/sergii-ziborov/radiochron),
+[`radiochron-js`](https://github.com/sergii-ziborov/radiochron-js), and
+[`radiochron-site`](https://github.com/sergii-ziborov/radiochron-site).
 
 ## Install
 
@@ -19,10 +24,10 @@ The crate is `radiochron-mcp`; the binary it installs is named `radiochron`,
 because a `radiochron-mcp.exe` in a client config reads as internal plumbing.
 
 ```sh
-cargo install radiochron-mcp
+cargo install --git https://github.com/sergii-ziborov/radiochron-mcp
 ```
 
-No Rust toolchain? The [`radiochron`](https://www.npmjs.com/package/radiochron)
+No Rust toolchain? The [`radiochron`](https://github.com/sergii-ziborov/radiochron-js)
 npm package ships the same binary prebuilt:
 
 ```sh
@@ -115,6 +120,6 @@ sniffer, a geolocation system, or offensive Wi-Fi tooling.
 
 ## License
 
-Licensed under either of [Apache-2.0](https://github.com/sergii-ziborov/radiochron/blob/main/LICENSE-APACHE)
-or [MIT](https://github.com/sergii-ziborov/radiochron/blob/main/LICENSE-MIT), at
+Licensed under either of [Apache-2.0](LICENSE-APACHE)
+or [MIT](LICENSE-MIT), at
 your option.
