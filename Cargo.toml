@@ -4,11 +4,11 @@ description = "Model Context Protocol server exposing local Wi-Fi diagnostics ov
 keywords = ["mcp", "wifi", "wlan", "diagnostics", "model-context-protocol"]
 categories = ["command-line-utilities", "network-programming"]
 readme = "README.md"
-version = "0.2.0"
+version = "0.2.1"
 edition = "2021"
 rust-version = "1.78"
 authors = ["Sergii Ziborov"]
-license = "MIT OR Apache-2.0"
+license = "MIT"
 repository = "https://github.com/sergii-ziborov/radiochron-mcp"
 build = "build.rs"
 

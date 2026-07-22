@@ -139,6 +139,5 @@ sniffer, a geolocation system, or offensive Wi-Fi tooling.
 
 ## License
 
-Licensed under either of [Apache-2.0](LICENSE-APACHE)
-or [MIT](LICENSE-MIT), at
-your option.
+Licensed under the [MIT License](LICENSE-MIT). The underlying `radiochron`
+Rust core remains separately dual-licensed under MIT or Apache-2.0.

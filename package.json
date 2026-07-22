@@ -1,6 +1,6 @@
 {
   "name": "radiochron-mcp",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Pure-Rust MCP server for local Wi-Fi diagnostics on Windows, Linux, and macOS.",
   "mcpName": "io.github.sergii-ziborov/radiochron",
   "bin": {
@@ -12,15 +12,14 @@
     "vendor",
     "server.json",
     "README.md",
-    "LICENSE-MIT",
-    "LICENSE-APACHE"
+    "LICENSE-MIT"
   ],
   "scripts": {
     "test": "node --test npm/*.test.js",
     "verify:package": "node scripts/verify-package.js",
     "prepack": "node npm/prepare.js"
   },
-  "license": "(MIT OR Apache-2.0)",
+  "license": "MIT",
   "author": "Sergii Ziborov",
   "homepage": "https://radiochron.com",
   "repository": {

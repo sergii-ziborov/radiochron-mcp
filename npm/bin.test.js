@@ -32,8 +32,12 @@ test('npm package boundary stays native-server only', () => {
     'vendor',
     'server.json',
     'README.md',
-    'LICENSE-MIT',
-    'LICENSE-APACHE'
+    'LICENSE-MIT'
   ]);
   assert.equal(existsSync(join(__dirname, '..', 'scripts', 'verify-package.js')), true);
+});
+
+test('the standalone MCP server is MIT licensed', () => {
+  assert.equal(packageJson.license, 'MIT');
+  assert.equal(packageJson.files.includes('LICENSE-APACHE'), false);
 });
