@@ -19,7 +19,7 @@ path = "src/main.rs"
 [dependencies]
 # Pin the engine revision so a released MCP binary always has a reproducible
 # collector/analysis implementation independent of future core changes.
-radiochron = { git = "https://github.com/sergii-ziborov/radiochron", rev = "6766fab7128a4b2e0bcb49ec69d17942c63269b6", version = "0.2.0" }
+radiochron = { git = "https://github.com/sergii-ziborov/radiochron", rev = "9df3dc77fb0757ddfe2f3a9d6f576c7753ee01dd", version = "0.2.0" }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 anyhow = "1"
