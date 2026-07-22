@@ -235,6 +235,9 @@ impl Server {
             "wifi_analyze" => &["refresh_scan"][..],
             "wifi_history" => &["within_seconds", "max_events", "include_events"][..],
             "wifi_sample" => &["interface_guid", "duration_seconds", "interval_ms"][..],
+            "connectivity_diagnose" => {
+                &["dns_name", "tcp_target", "internet_target", "timeout_ms"][..]
+            }
             "chronicle_start" => &["interval_seconds", "signal_threshold_db"][..],
             "chronicle_recent" => &["max_entries"][..],
             other => {
@@ -258,6 +261,7 @@ impl Server {
             "wifi_analyze" => analyze_environment(&arguments),
             "wifi_history" => history(&arguments),
             "wifi_sample" => sample(&arguments, context),
+            "connectivity_diagnose" => diagnose_connectivity(&arguments),
             "chronicle_start" => (|| -> anyhow::Result<Value> {
                 let interval = bounded_u64(&arguments, "interval_seconds", 5, 1, 300)?;
                 let threshold = bounded_i32(&arguments, "signal_threshold_db", 8, 1, 50)?;
@@ -581,6 +585,27 @@ fn tool_definitions() -> Value {
             "entries":{"type":"array","items":{"type":"object"}}
         }),
     );
+    let connectivity_output = output_schema(
+        &[
+            "observed_at_epoch_seconds",
+            "radio",
+            "authentication",
+            "dhcp",
+            "dns",
+            "tcp",
+            "internet",
+        ],
+        json!({
+            "observed_at_epoch_seconds":{"type":"integer"},
+            "interface_id":{"type":["string","null"]},
+            "radio":{"type":"object"},
+            "authentication":{"type":"object"},
+            "dhcp":{"type":"object"},
+            "dns":{"type":"object"},
+            "tcp":{"type":"object"},
+            "internet":{"type":"object"}
+        }),
+    );
     json!([
         tool("wifi_status", "Wi-Fi status", "Current state of every WLAN interface.", json!({"type":"object","properties":{},"additionalProperties":false}), status_output, true, true),
         tool("wifi_networks", "Visible Wi-Fi networks", "Nearby BSS records with real dBm, security, channel width and load. refresh_scan initiates a standard radio scan.", json!({"type":"object","properties":{"refresh_scan":{"type":"boolean"},"detail":{"type":"string","enum":["summary","full"]}},"additionalProperties":false}), networks_output, false, true),
@@ -588,6 +613,7 @@ fn tool_definitions() -> Value {
         tool("wifi_history", "Wi-Fi event history", "Windows WLAN AutoConfig history and evidence-based verdicts.", json!({"type":"object","properties":{"within_seconds":{"type":"integer","minimum":1,"maximum":MAX_HISTORY_WINDOW_S},"max_events":{"type":"integer","minimum":1,"maximum":2000},"include_events":{"type":"boolean"}},"additionalProperties":false}), history_output, true, true),
         tool("wifi_sample", "Sample Wi-Fi connection", "Cancelable sampling with RSSI/rate/roaming aggregates and optional interface selection.", json!({"type":"object","properties":{"interface_guid":{"type":"string"},"duration_seconds":{"type":"integer","minimum":1,"maximum":120},"interval_ms":{"type":"integer","minimum":250,"maximum":60000}},"additionalProperties":false}), sample_output, true, false),
         tool("wifi_scan", "Refresh Wi-Fi scan", "Initiate a standard Wi-Fi scan and wait for per-interface completion notifications.", json!({"type":"object","properties":{},"additionalProperties":false}), scan_output, false, false),
+        tool("connectivity_diagnose", "Diagnose network connectivity", "Separate radio, AP authentication/association, IP/DHCP-layer configuration, DNS, TCP service and explicit Internet reachability. No target is contacted unless supplied.", json!({"type":"object","properties":{"dns_name":{"type":"string","minLength":1,"maxLength":253},"tcp_target":{"type":"string","minLength":3,"maxLength":512},"internet_target":{"type":"string","minLength":3,"maxLength":512},"timeout_ms":{"type":"integer","minimum":100,"maximum":30000}},"additionalProperties":false}), connectivity_output, true, true),
         tool("chronicle_start", "Start RadioChron chronicle", "Start the local change-only JSONL recorder in LocalAppData.", json!({"type":"object","properties":{"interval_seconds":{"type":"integer","minimum":1,"maximum":300},"signal_threshold_db":{"type":"integer","minimum":1,"maximum":50}},"additionalProperties":false}), chronicle_status_output.clone(), false, false),
         tool("chronicle_stop", "Stop RadioChron chronicle", "Stop and flush the process-local recorder.", json!({"type":"object","properties":{},"additionalProperties":false}), chronicle_status_output.clone(), false, false),
         tool("chronicle_status", "Chronicle status", "Read recorder state and storage path.", json!({"type":"object","properties":{},"additionalProperties":false}), chronicle_status_output, true, true),
@@ -623,7 +649,7 @@ fn tool(
             "readOnlyHint": read_only,
             "destructiveHint": false,
             "idempotentHint": idempotent,
-            "openWorldHint": false
+            "openWorldHint": name == "connectivity_diagnose"
         }
     })
 }
@@ -772,6 +798,18 @@ fn sample(arguments: &Value, context: &RequestContext) -> anyhow::Result<Value> 
     Ok(serde_json::to_value(run)?)
 }
 
+fn diagnose_connectivity(arguments: &Value) -> anyhow::Result<Value> {
+    let config = radiochron::connectivity::ConnectivityConfig {
+        dns_name: bounded_optional_string(arguments, "dns_name", 253)?,
+        tcp_target: bounded_optional_string(arguments, "tcp_target", 512)?,
+        internet_target: bounded_optional_string(arguments, "internet_target", 512)?,
+        timeout: Duration::from_millis(bounded_u64(arguments, "timeout_ms", 3_000, 100, 30_000)?),
+    };
+    Ok(serde_json::to_value(radiochron::connectivity::diagnose(
+        &config,
+    ))?)
+}
+
 fn bounded_u64(
     arguments: &Value,
     name: &str,
@@ -846,6 +884,21 @@ fn optional_string<'a>(arguments: &'a Value, name: &str) -> anyhow::Result<Optio
     }
 }
 
+fn bounded_optional_string(
+    arguments: &Value,
+    name: &str,
+    max_len: usize,
+) -> anyhow::Result<Option<String>> {
+    let Some(value) = optional_string(arguments, name)? else {
+        return Ok(None);
+    };
+    let value = value.trim();
+    if value.is_empty() || value.len() > max_len {
+        anyhow::bail!("{name} must contain 1..={max_len} bytes");
+    }
+    Ok(Some(value.to_string()))
+}
+
 fn encode<T: Serialize>(value: &T) -> anyhow::Result<String> {
     Ok(serde_json::to_string(value)?)
 }
@@ -913,7 +966,7 @@ mod tests {
         let server = ready_server();
         let out = response(&server, r#"{"jsonrpc":"2.0","id":2,"method":"tools/list"}"#);
         let tools = out["result"]["tools"].as_array().unwrap();
-        assert_eq!(tools.len(), 10);
+        assert_eq!(tools.len(), 11);
         for tool in tools {
             assert_eq!(tool["inputSchema"]["type"], "object");
             assert_eq!(tool["outputSchema"]["type"], "object");
@@ -929,6 +982,11 @@ mod tests {
             .find(|tool| tool["name"] == "wifi_status")
             .unwrap();
         assert_eq!(status["annotations"]["readOnlyHint"], true);
+        let connectivity = tools
+            .iter()
+            .find(|tool| tool["name"] == "connectivity_diagnose")
+            .unwrap();
+        assert_eq!(connectivity["annotations"]["openWorldHint"], true);
 
         let sample = tools
             .iter()

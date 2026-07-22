@@ -66,6 +66,7 @@ impl ChronicleService {
         let options = RecorderOptions {
             interval,
             signal_threshold_db: threshold_db,
+            ..RecorderOptions::default()
         };
 
         {

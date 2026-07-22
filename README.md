@@ -58,7 +58,7 @@ newline-delimited JSON-RPC 2.0 over stdio.
 
 ## Tools
 
-Ten tools with machine-readable input/output schemas, structured results and
+Eleven tools with machine-readable input/output schemas, structured results and
 truthful MCP safety annotations.
 
 | Tool | Arguments | Returns |
@@ -69,6 +69,7 @@ truthful MCP safety annotations.
 | `wifi_history` | `within_seconds?: number`<br>`max_events?: number`<br>`include_events?: boolean` | **Why it dropped earlier.** Reads the WLAN AutoConfig event log and returns a verdict: reconnect loops, an AP repeatedly failing key exchange, a suspected credential mismatch |
 | `wifi_sample` | `interface_guid?: string`<br>`duration_seconds?: 1..120`<br>`interval_ms?: 250..60000` | Cancelable sampling with progress; collector errors remain distinct from disconnects |
 | `wifi_scan` | — | Triggers a standard scan and waits for each Windows completion/failure notification |
+| `connectivity_diagnose` | `dns_name?: string`<br>`tcp_target?: "host:port"`<br>`internet_target?: "host:port"`<br>`timeout_ms?: 100..30000` | Separates radio, AP authentication, IP/DHCP layer, DNS, TCP and explicit Internet reachability; only supplied targets are contacted |
 | `chronicle_start` | `interval_seconds?: 1..300`<br>`signal_threshold_db?: 1..50` | Starts the local rotating change-only recorder |
 | `chronicle_stop` | — | Stops and flushes the recorder |
 | `chronicle_status` | — | Recorder state, path and latest error |
@@ -107,9 +108,10 @@ builds on nothing but `rustup`.
 
 ## Platform
 
-Windows-only today — the engine talks to `wlanapi.dll` and the WLAN event log
-directly. Linux (nl80211) and macOS (CoreWLAN) are on the
-[roadmap](https://radiochron.com/#roadmap).
+This MCP binary remains Windows-only because it exposes WLAN AutoConfig event
+history. The shared engine now also has a native Linux/nl80211 collector; Linux
+fleet deployment lives in the separate `radiochron-agent` repository. macOS
+CoreWLAN remains on the [roadmap](https://radiochron.com/#roadmap).
 
 ## Safety and privacy
 
