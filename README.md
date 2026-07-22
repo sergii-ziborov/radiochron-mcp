@@ -127,8 +127,7 @@ builds on nothing but `rustup`.
 The MCP binary runs on Windows, Linux and macOS. It uses WLAN API on Windows,
 nl80211 on Linux, and CoreWLAN on Apple systems, including Apple Silicon.
 Windows alone exposes WLAN AutoConfig event history; all other tools remain
-available on macOS and Linux. Fleet deployment lives in the separate
-[`radiochron-agent`](https://github.com/sergii-ziborov/radiochron-agent) repository.
+available on macOS and Linux.
 
 ## Safety and privacy
 
