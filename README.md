@@ -31,13 +31,20 @@ cargo install --git https://github.com/sergii-ziborov/radiochron-mcp
 ```
 
 Publication is pending. The separate `radiochron-mcp` npm package carries provenance-checked native
-binaries for Windows x64, Linux x64, Intel Mac, and Apple Silicon. It is built
+binaries for Windows x64, Linux x64/ARM64, Intel Mac, and Apple Silicon. It is built
 and published from this repository; `radiochron-js` is an independent Node
 library and does not contain this server.
 
 ```sh
 claude mcp add radiochron -- npx -y radiochron-mcp
 ```
+
+A matching `v<package-version>` tag publishes the verified native npm package
+through npm trusted publishing, then authenticates to the official MCP Registry
+with GitHub OIDC and publishes `server.json`. The tag, npm version, and MCP
+metadata version must match. The initial npm package-name claim must be done
+once before the trusted publisher can be enabled; after that no long-lived npm
+or MCP token is used by CI.
 
 ## Register with an MCP client
 

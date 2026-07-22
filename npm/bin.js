@@ -8,6 +8,7 @@ const { join } = require('node:path');
 const TARGETS = {
   'win32-x64': 'radiochron.exe',
   'linux-x64': 'radiochron',
+  'linux-arm64': 'radiochron',
   'darwin-x64': 'radiochron',
   'darwin-arm64': 'radiochron'
 };

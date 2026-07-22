@@ -38,6 +38,8 @@
     "network",
     "windows",
     "linux",
+    "linux-arm64",
+    "raspberry-pi",
     "macos",
     "rust"
   ],

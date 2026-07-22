@@ -10,6 +10,7 @@ const root = resolve(__dirname, '..');
 const targets = [
   { key: 'win32-x64', env: 'RADIOCHRON_MCP_BINARY_WIN32_X64', file: 'radiochron.exe', windows: true, platform: 'windows', arch: 'x86_64' },
   { key: 'linux-x64', env: 'RADIOCHRON_MCP_BINARY_LINUX_X64', file: 'radiochron', windows: false, platform: 'linux', arch: 'x86_64' },
+  { key: 'linux-arm64', env: 'RADIOCHRON_MCP_BINARY_LINUX_ARM64', file: 'radiochron', windows: false, platform: 'linux', arch: 'aarch64' },
   { key: 'darwin-x64', env: 'RADIOCHRON_MCP_BINARY_DARWIN_X64', file: 'radiochron', windows: false, platform: 'macos', arch: 'x86_64' },
   { key: 'darwin-arm64', env: 'RADIOCHRON_MCP_BINARY_DARWIN_ARM64', file: 'radiochron', windows: false, platform: 'macos', arch: 'aarch64' }
 ];

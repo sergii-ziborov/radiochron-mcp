@@ -22,6 +22,8 @@ jobs:
         include:
           - os: ubuntu-latest
             artifact: radiochron-mcp-linux-x64
+          - os: ubuntu-24.04-arm
+            artifact: radiochron-mcp-linux-arm64
           - os: macos-15
             artifact: radiochron-mcp-macos-arm64
           - os: macos-15-intel
@@ -139,6 +141,10 @@ jobs:
           path: ${{ runner.temp }}/linux-x64
       - uses: actions/download-artifact@v4
         with:
+          name: radiochron-mcp-linux-arm64
+          path: ${{ runner.temp }}/linux-arm64
+      - uses: actions/download-artifact@v4
+        with:
           name: radiochron-mcp-macos-x64
           path: ${{ runner.temp }}/darwin-x64
       - uses: actions/download-artifact@v4
@@ -154,8 +160,67 @@ jobs:
         env:
           RADIOCHRON_MCP_BINARY_WIN32_X64: ${{ runner.temp }}/win32-x64/radiochron.exe
           RADIOCHRON_MCP_BINARY_LINUX_X64: ${{ runner.temp }}/linux-x64/radiochron
+          RADIOCHRON_MCP_BINARY_LINUX_ARM64: ${{ runner.temp }}/linux-arm64/radiochron
           RADIOCHRON_MCP_BINARY_DARWIN_X64: ${{ runner.temp }}/darwin-x64/radiochron
           RADIOCHRON_MCP_BINARY_DARWIN_ARM64: ${{ runner.temp }}/darwin-arm64/radiochron
         run: |
           npm pack --dry-run
           node npm/bin.js --build-info
+
+  publish:
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: [portable, windows-gnu, npm-package]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          registry-url: https://registry.npmjs.org
+          package-manager-cache: false
+      - uses: actions/download-artifact@v4
+        with:
+          name: radiochron-mcp-linux-x64
+          path: ${{ runner.temp }}/linux-x64
+      - uses: actions/download-artifact@v4
+        with:
+          name: radiochron-mcp-linux-arm64
+          path: ${{ runner.temp }}/linux-arm64
+      - uses: actions/download-artifact@v4
+        with:
+          name: radiochron-mcp-macos-x64
+          path: ${{ runner.temp }}/darwin-x64
+      - uses: actions/download-artifact@v4
+        with:
+          name: radiochron-mcp-macos-arm64
+          path: ${{ runner.temp }}/darwin-arm64
+      - uses: actions/download-artifact@v4
+        with:
+          name: radiochron-mcp-windows
+          path: ${{ runner.temp }}/win32-x64
+      - name: Verify release metadata
+        env:
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: |
+          node -e "const packageVersion = require('./package.json').version; const serverVersion = require('./server.json').version; const expected = 'v' + packageVersion; if (process.env.RELEASE_TAG !== expected || serverVersion !== packageVersion) { throw new Error('tag, package.json, and server.json versions must match'); }"
+          npm test
+      - name: Publish trusted npm package
+        env:
+          RADIOCHRON_MCP_BINARY_WIN32_X64: ${{ runner.temp }}/win32-x64/radiochron.exe
+          RADIOCHRON_MCP_BINARY_LINUX_X64: ${{ runner.temp }}/linux-x64/radiochron
+          RADIOCHRON_MCP_BINARY_LINUX_ARM64: ${{ runner.temp }}/linux-arm64/radiochron
+          RADIOCHRON_MCP_BINARY_DARWIN_X64: ${{ runner.temp }}/darwin-x64/radiochron
+          RADIOCHRON_MCP_BINARY_DARWIN_ARM64: ${{ runner.temp }}/darwin-arm64/radiochron
+        run: npm publish --access public
+      - name: Install MCP Registry publisher
+        run: |
+          curl --fail --location --output mcp-publisher.tar.gz "https://github.com/modelcontextprotocol/registry/releases/download/v1.7.9/mcp-publisher_linux_amd64.tar.gz"
+          echo "ab128162b0616090b47cf245afe8e78a4f63b991880b72322178909dfad5cf846  mcp-publisher.tar.gz" | sha256sum --check
+          tar xzf mcp-publisher.tar.gz mcp-publisher
+      - name: Publish MCP Registry metadata
+        run: |
+          ./mcp-publisher login github-oidc
+          ./mcp-publisher publish
