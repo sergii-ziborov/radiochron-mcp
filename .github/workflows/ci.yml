@@ -209,6 +209,7 @@ jobs:
           npm test
       - name: Publish trusted npm package
         env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
           RADIOCHRON_MCP_BINARY_WIN32_X64: ${{ runner.temp }}/win32-x64/radiochron.exe
           RADIOCHRON_MCP_BINARY_LINUX_X64: ${{ runner.temp }}/linux-x64/radiochron
           RADIOCHRON_MCP_BINARY_LINUX_ARM64: ${{ runner.temp }}/linux-arm64/radiochron

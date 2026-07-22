@@ -42,9 +42,10 @@ claude mcp add radiochron -- npx -y radiochron-mcp
 A matching `v<package-version>` tag publishes the verified native npm package
 through npm trusted publishing, then authenticates to the official MCP Registry
 with GitHub OIDC and publishes `server.json`. The tag, npm version, and MCP
-metadata version must match. The initial npm package-name claim must be done
-once before the trusted publisher can be enabled; after that no long-lived npm
-or MCP token is used by CI.
+metadata version must match. For the initial package-name claim only, store a
+granular publish token as the `NPM_TOKEN` repository secret and push the
+matching tag. Then configure `ci.yml` as the package's trusted publisher on
+npmjs.com and revoke/delete that one-time secret; no MCP token is needed.
 
 ## Register with an MCP client
 
