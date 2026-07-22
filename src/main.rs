@@ -24,9 +24,11 @@ fn main() -> anyhow::Result<()> {
         }
         Some("--build-info") => {
             println!(
-                "{{\"name\":\"radiochron\",\"version\":\"{}\",\"git_sha\":\"{}\"}}",
+                "{{\"name\":\"radiochron\",\"version\":\"{}\",\"git_sha\":\"{}\",\"platform\":\"{}\",\"arch\":\"{}\"}}",
                 env!("CARGO_PKG_VERSION"),
-                env!("RADIOCHRON_GIT_SHA")
+                env!("RADIOCHRON_GIT_SHA"),
+                std::env::consts::OS,
+                std::env::consts::ARCH
             );
             return Ok(());
         }

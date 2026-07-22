@@ -1,0 +1,21 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+  "name": "io.github.sergii-ziborov/radiochron",
+  "title": "RadioChron",
+  "description": "Local-first Wi-Fi status, BSS analysis, history, connectivity diagnosis, and chronicle.",
+  "repository": {
+    "url": "https://github.com/sergii-ziborov/radiochron-mcp",
+    "source": "github"
+  },
+  "version": "0.2.0",
+  "packages": [
+    {
+      "registryType": "npm",
+      "identifier": "radiochron-mcp",
+      "version": "0.2.0",
+      "transport": {
+        "type": "stdio"
+      }
+    }
+  ]
+}

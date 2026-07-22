@@ -1,4 +1,6 @@
 /target
+/vendor
+/*.tgz
 /data
 *.sqlite
 *.sqlite-wal

@@ -30,6 +30,15 @@ because a `radiochron-mcp.exe` in a client config reads as internal plumbing.
 cargo install --git https://github.com/sergii-ziborov/radiochron-mcp
 ```
 
+Publication is pending. The separate `radiochron-mcp` npm package carries provenance-checked native
+binaries for Windows x64, Linux x64, Intel Mac, and Apple Silicon. It is built
+and published from this repository; `radiochron-js` is an independent Node
+library and does not contain this server.
+
+```sh
+claude mcp add radiochron -- npx -y radiochron-mcp
+```
+
 ## Register with an MCP client
 
 For Claude Code, point it at the installed binary:

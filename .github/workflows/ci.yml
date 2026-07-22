@@ -28,7 +28,7 @@ jobs:
             artifact: radiochron-mcp-macos-x64
     runs-on: ${{ matrix.os }}
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
       - uses: dtolnay/rust-toolchain@stable
         with:
           components: clippy,rustfmt
@@ -41,12 +41,14 @@ jobs:
         shell: bash
         run: |
           test "$(target/release/radiochron --build-info | sed -n 's/.*"git_sha":"\([^"]*\)".*/\1/p')" = "${GITHUB_SHA}"
+          target/release/radiochron --build-info > target/release/radiochron.build-info.json
           shasum -a 256 target/release/radiochron > target/release/radiochron.sha256
       - uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.artifact }}
           path: |
             target/release/radiochron
+            target/release/radiochron.build-info.json
             target/release/radiochron.sha256
 
   windows-gnu:
@@ -56,7 +58,7 @@ jobs:
       id-token: write
       attestations: write
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
       - name: Use the self-contained GNU toolchain
         run: |
           rustup toolchain install stable-x86_64-pc-windows-gnu --component clippy,rustfmt
@@ -71,12 +73,14 @@ jobs:
         run: |
           $info = target/release/radiochron.exe --build-info | ConvertFrom-Json
           if ($info.git_sha -ne '${{ github.sha }}') { throw 'binary commit does not match workflow commit' }
+          $info | ConvertTo-Json -Compress | Set-Content target/release/radiochron.exe.build-info.json
           (Get-FileHash target/release/radiochron.exe -Algorithm SHA256).Hash.ToLower() + '  radiochron.exe' | Set-Content target/release/radiochron.exe.sha256
       - uses: actions/upload-artifact@v4
         with:
           name: radiochron-mcp-windows
           path: |
             target/release/radiochron.exe
+            target/release/radiochron.exe.build-info.json
             target/release/radiochron.exe.sha256
       - name: Attest tagged binary provenance
         if: startsWith(github.ref, 'refs/tags/v')
@@ -87,7 +91,7 @@ jobs:
   msrv:
     runs-on: windows-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
       - name: Use declared MSRV
         run: |
           rustup toolchain install 1.78.0-x86_64-pc-windows-gnu
@@ -98,7 +102,7 @@ jobs:
   windows-msvc:
     runs-on: windows-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
       - uses: dtolnay/rust-toolchain@stable
         with:
           components: clippy
@@ -109,7 +113,7 @@ jobs:
   coverage:
     runs-on: windows-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
       - uses: dtolnay/rust-toolchain@stable
         with:
           components: llvm-tools-preview
@@ -120,3 +124,38 @@ jobs:
         with:
           name: radiochron-mcp-coverage
           path: lcov.info
+
+  npm-package:
+    needs: [portable, windows-gnu]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+      - uses: actions/download-artifact@v4
+        with:
+          name: radiochron-mcp-linux-x64
+          path: ${{ runner.temp }}/linux-x64
+      - uses: actions/download-artifact@v4
+        with:
+          name: radiochron-mcp-macos-x64
+          path: ${{ runner.temp }}/darwin-x64
+      - uses: actions/download-artifact@v4
+        with:
+          name: radiochron-mcp-macos-arm64
+          path: ${{ runner.temp }}/darwin-arm64
+      - uses: actions/download-artifact@v4
+        with:
+          name: radiochron-mcp-windows
+          path: ${{ runner.temp }}/win32-x64
+      - run: npm test
+      - name: Verify npm archive and bundled launcher
+        env:
+          RADIOCHRON_MCP_BINARY_WIN32_X64: ${{ runner.temp }}/win32-x64/radiochron.exe
+          RADIOCHRON_MCP_BINARY_LINUX_X64: ${{ runner.temp }}/linux-x64/radiochron
+          RADIOCHRON_MCP_BINARY_DARWIN_X64: ${{ runner.temp }}/darwin-x64/radiochron
+          RADIOCHRON_MCP_BINARY_DARWIN_ARM64: ${{ runner.temp }}/darwin-arm64/radiochron
+        run: |
+          npm pack --dry-run
+          node npm/bin.js --build-info
