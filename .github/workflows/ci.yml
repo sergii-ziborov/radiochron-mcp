@@ -15,6 +15,40 @@ env:
   RADIOCHRON_GIT_SHA: ${{ github.sha }}
 
 jobs:
+  portable:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            artifact: radiochron-mcp-linux-x64
+          - os: macos-15
+            artifact: radiochron-mcp-macos-arm64
+          - os: macos-15-intel
+            artifact: radiochron-mcp-macos-x64
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v5
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy,rustfmt
+      - uses: Swatinem/rust-cache@v2
+      - run: cargo fmt --check
+      - run: cargo clippy --all-targets -- -D warnings
+      - run: cargo test
+      - run: cargo build --release
+      - name: Verify binary provenance
+        shell: bash
+        run: |
+          test "$(target/release/radiochron --build-info | sed -n 's/.*"git_sha":"\([^"]*\)".*/\1/p')" = "${GITHUB_SHA}"
+          shasum -a 256 target/release/radiochron > target/release/radiochron.sha256
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact }}
+          path: |
+            target/release/radiochron
+            target/release/radiochron.sha256
+
   windows-gnu:
     runs-on: windows-latest
     permissions:

@@ -36,12 +36,7 @@ impl ChronicleService {
     pub fn new() -> Self {
         let path = std::env::var_os("RADIOCHRON_CHRONICLE_PATH")
             .map(PathBuf::from)
-            .unwrap_or_else(|| {
-                let base = std::env::var_os("LOCALAPPDATA")
-                    .map(PathBuf::from)
-                    .unwrap_or_else(std::env::temp_dir);
-                base.join("RadioChron").join("chronicle.jsonl")
-            });
+            .unwrap_or_else(default_chronicle_path);
         Self::with_path(path)
     }
 
@@ -162,6 +157,43 @@ impl ChronicleService {
             "entries": read.entries,
         }))
     }
+}
+
+fn default_chronicle_path() -> PathBuf {
+    #[cfg(windows)]
+    {
+        return std::env::var_os("LOCALAPPDATA")
+            .map(PathBuf::from)
+            .unwrap_or_else(std::env::temp_dir)
+            .join("RadioChron")
+            .join("chronicle.jsonl");
+    }
+    #[cfg(target_os = "macos")]
+    {
+        return std::env::var_os("HOME")
+            .map(PathBuf::from)
+            .unwrap_or_else(std::env::temp_dir)
+            .join("Library")
+            .join("Application Support")
+            .join("RadioChron")
+            .join("chronicle.jsonl");
+    }
+    #[cfg(all(unix, not(target_os = "macos")))]
+    {
+        let base = std::env::var_os("XDG_STATE_HOME")
+            .map(PathBuf::from)
+            .or_else(|| {
+                std::env::var_os("HOME")
+                    .map(PathBuf::from)
+                    .map(|home| home.join(".local").join("state"))
+            })
+            .unwrap_or_else(std::env::temp_dir);
+        return base.join("radiochron").join("chronicle.jsonl");
+    }
+    #[allow(unreachable_code)]
+    std::env::temp_dir()
+        .join("radiochron")
+        .join("chronicle.jsonl")
 }
 
 #[cfg(test)]

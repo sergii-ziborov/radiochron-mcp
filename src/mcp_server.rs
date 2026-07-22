@@ -178,7 +178,7 @@ impl Server {
                 "name": "radiochron",
                 "version": env!("CARGO_PKG_VERSION")
             },
-            "instructions": "Local Windows Wi-Fi diagnostics. SSIDs, BSSIDs and MAC addresses are sensitive. Most tools are read-only; wifi_scan and refresh_scan initiate a standard radio scan, while chronicle_start/stop control a local recorder."
+            "instructions": "Local Wi-Fi diagnostics for Windows, Linux and macOS. SSIDs, BSSIDs and MAC addresses are sensitive. Most tools are read-only; wifi_scan and refresh_scan initiate a standard radio scan, while chronicle_start/stop control a local recorder. Windows event history is unavailable on other platforms."
         }))
     }
 
@@ -235,9 +235,17 @@ impl Server {
             "wifi_analyze" => &["refresh_scan"][..],
             "wifi_history" => &["within_seconds", "max_events", "include_events"][..],
             "wifi_sample" => &["interface_guid", "duration_seconds", "interval_ms"][..],
-            "connectivity_diagnose" => {
-                &["dns_name", "tcp_target", "internet_target", "timeout_ms"][..]
-            }
+            "connectivity_diagnose" => &[
+                "dns_name",
+                "tcp_target",
+                "internet_target",
+                "captive_portal_url",
+                "captive_portal_expected_status",
+                "tls_target",
+                "quality_target",
+                "quality_attempts",
+                "timeout_ms",
+            ][..],
             "chronicle_start" => &["interval_seconds", "signal_threshold_db"][..],
             "chronicle_recent" => &["max_entries"][..],
             other => {
@@ -591,8 +599,12 @@ fn tool_definitions() -> Value {
             "radio",
             "authentication",
             "dhcp",
+            "gateway",
             "dns",
             "tcp",
+            "captive_portal",
+            "tls",
+            "packet_quality",
             "internet",
         ],
         json!({
@@ -601,24 +613,33 @@ fn tool_definitions() -> Value {
             "radio":{"type":"object"},
             "authentication":{"type":"object"},
             "dhcp":{"type":"object"},
+            "ip_configuration":{"type":["object","null"]},
+            "gateway":{"type":"object"},
             "dns":{"type":"object"},
             "tcp":{"type":"object"},
+            "captive_portal":{"type":"object"},
+            "tls":{"type":"object"},
+            "packet_quality":{"type":"object"},
+            "packet_quality_measurement":{"type":["object","null"]},
             "internet":{"type":"object"}
         }),
     );
-    json!([
+    let mut tools = vec![
         tool("wifi_status", "Wi-Fi status", "Current state of every WLAN interface.", json!({"type":"object","properties":{},"additionalProperties":false}), status_output, true, true),
         tool("wifi_networks", "Visible Wi-Fi networks", "Nearby BSS records with real dBm, security, channel width and load. refresh_scan initiates a standard radio scan.", json!({"type":"object","properties":{"refresh_scan":{"type":"boolean"},"detail":{"type":"string","enum":["summary","full"]}},"additionalProperties":false}), networks_output, false, true),
         tool("wifi_analyze", "Analyze Wi-Fi environment", "Caveated findings for signal, contention, roaming candidates and security.", json!({"type":"object","properties":{"refresh_scan":{"type":"boolean"}},"additionalProperties":false}), analysis_output, false, true),
-        tool("wifi_history", "Wi-Fi event history", "Windows WLAN AutoConfig history and evidence-based verdicts.", json!({"type":"object","properties":{"within_seconds":{"type":"integer","minimum":1,"maximum":MAX_HISTORY_WINDOW_S},"max_events":{"type":"integer","minimum":1,"maximum":2000},"include_events":{"type":"boolean"}},"additionalProperties":false}), history_output, true, true),
         tool("wifi_sample", "Sample Wi-Fi connection", "Cancelable sampling with RSSI/rate/roaming aggregates and optional interface selection.", json!({"type":"object","properties":{"interface_guid":{"type":"string"},"duration_seconds":{"type":"integer","minimum":1,"maximum":120},"interval_ms":{"type":"integer","minimum":250,"maximum":60000}},"additionalProperties":false}), sample_output, true, false),
         tool("wifi_scan", "Refresh Wi-Fi scan", "Initiate a standard Wi-Fi scan and wait for per-interface completion notifications.", json!({"type":"object","properties":{},"additionalProperties":false}), scan_output, false, false),
-        tool("connectivity_diagnose", "Diagnose network connectivity", "Separate radio, AP authentication/association, IP/DHCP-layer configuration, DNS, TCP service and explicit Internet reachability. No target is contacted unless supplied.", json!({"type":"object","properties":{"dns_name":{"type":"string","minLength":1,"maxLength":253},"tcp_target":{"type":"string","minLength":3,"maxLength":512},"internet_target":{"type":"string","minLength":3,"maxLength":512},"timeout_ms":{"type":"integer","minimum":100,"maximum":30000}},"additionalProperties":false}), connectivity_output, true, true),
-        tool("chronicle_start", "Start RadioChron chronicle", "Start the local change-only JSONL recorder in LocalAppData.", json!({"type":"object","properties":{"interval_seconds":{"type":"integer","minimum":1,"maximum":300},"signal_threshold_db":{"type":"integer","minimum":1,"maximum":50}},"additionalProperties":false}), chronicle_status_output.clone(), false, false),
+        tool("connectivity_diagnose", "Diagnose network connectivity", "Separate radio, AP authentication/association, exact IP assignment when the platform exposes it, gateway, DNS, TCP, captive portal, TLS, packet quality and explicit Internet reachability. TLS certificate validation is performed by radiochron-agent; this dependency-light MCP reports that stage as unknown. No target is contacted unless supplied.", json!({"type":"object","properties":{"dns_name":{"type":"string","minLength":1,"maxLength":253},"tcp_target":{"type":"string","minLength":3,"maxLength":512},"internet_target":{"type":"string","minLength":3,"maxLength":512},"captive_portal_url":{"type":"string","minLength":8,"maxLength":2048},"captive_portal_expected_status":{"type":"integer","minimum":100,"maximum":599},"tls_target":{"type":"string","minLength":3,"maxLength":512},"quality_target":{"type":"string","minLength":3,"maxLength":512},"quality_attempts":{"type":"integer","minimum":1,"maximum":20},"timeout_ms":{"type":"integer","minimum":100,"maximum":30000}},"additionalProperties":false}), connectivity_output, true, true),
+        tool("chronicle_start", "Start RadioChron chronicle", "Start the local change-only JSONL recorder in the platform application-state directory.", json!({"type":"object","properties":{"interval_seconds":{"type":"integer","minimum":1,"maximum":300},"signal_threshold_db":{"type":"integer","minimum":1,"maximum":50}},"additionalProperties":false}), chronicle_status_output.clone(), false, false),
         tool("chronicle_stop", "Stop RadioChron chronicle", "Stop and flush the process-local recorder.", json!({"type":"object","properties":{},"additionalProperties":false}), chronicle_status_output.clone(), false, false),
         tool("chronicle_status", "Chronicle status", "Read recorder state and storage path.", json!({"type":"object","properties":{},"additionalProperties":false}), chronicle_status_output, true, true),
         tool("chronicle_recent", "Recent chronicle changes", "Read recent change-only entries across the active and rotated JSONL files.", json!({"type":"object","properties":{"max_entries":{"type":"integer","minimum":1,"maximum":1000}},"additionalProperties":false}), chronicle_recent_output, true, true)
-    ])
+    ];
+    if cfg!(windows) {
+        tools.insert(3, tool("wifi_history", "Wi-Fi event history", "Windows WLAN AutoConfig history and evidence-based verdicts.", json!({"type":"object","properties":{"within_seconds":{"type":"integer","minimum":1,"maximum":MAX_HISTORY_WINDOW_S},"max_events":{"type":"integer","minimum":1,"maximum":2000},"include_events":{"type":"boolean"}},"additionalProperties":false}), history_output, true, true));
+    }
+    json!(tools)
 }
 
 fn output_schema(required: &[&str], properties: Value) -> Value {
@@ -766,6 +787,7 @@ fn analyze_environment(arguments: &Value) -> anyhow::Result<Value> {
     }))
 }
 
+#[cfg(windows)]
 fn history(arguments: &Value) -> anyhow::Result<Value> {
     let within = bounded_u64(arguments, "within_seconds", 3600, 1, MAX_HISTORY_WINDOW_S)?;
     let max = bounded_u64(arguments, "max_events", 200, 1, 2000)? as usize;
@@ -778,6 +800,11 @@ fn history(arguments: &Value) -> anyhow::Result<Value> {
         "verdict": verdict,
         "events": if include { serde_json::to_value(&events)? } else { Value::Null }
     }))
+}
+
+#[cfg(not(windows))]
+fn history(_arguments: &Value) -> anyhow::Result<Value> {
+    anyhow::bail!("wifi_history is available only on Windows WLAN AutoConfig")
 }
 
 fn sample(arguments: &Value, context: &RequestContext) -> anyhow::Result<Value> {
@@ -803,6 +830,17 @@ fn diagnose_connectivity(arguments: &Value) -> anyhow::Result<Value> {
         dns_name: bounded_optional_string(arguments, "dns_name", 253)?,
         tcp_target: bounded_optional_string(arguments, "tcp_target", 512)?,
         internet_target: bounded_optional_string(arguments, "internet_target", 512)?,
+        captive_portal_url: bounded_optional_string(arguments, "captive_portal_url", 2048)?,
+        captive_portal_expected_status: bounded_u64(
+            arguments,
+            "captive_portal_expected_status",
+            204,
+            100,
+            599,
+        )? as u16,
+        tls_target: bounded_optional_string(arguments, "tls_target", 512)?,
+        quality_target: bounded_optional_string(arguments, "quality_target", 512)?,
+        quality_attempts: bounded_u64(arguments, "quality_attempts", 4, 1, 20)? as u8,
         timeout: Duration::from_millis(bounded_u64(arguments, "timeout_ms", 3_000, 100, 30_000)?),
     };
     Ok(serde_json::to_value(radiochron::connectivity::diagnose(
@@ -966,7 +1004,7 @@ mod tests {
         let server = ready_server();
         let out = response(&server, r#"{"jsonrpc":"2.0","id":2,"method":"tools/list"}"#);
         let tools = out["result"]["tools"].as_array().unwrap();
-        assert_eq!(tools.len(), 11);
+        assert_eq!(tools.len(), if cfg!(windows) { 11 } else { 10 });
         for tool in tools {
             assert_eq!(tool["inputSchema"]["type"], "object");
             assert_eq!(tool["outputSchema"]["type"], "object");

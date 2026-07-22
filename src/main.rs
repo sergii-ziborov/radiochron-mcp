@@ -12,14 +12,10 @@
 //! On the stdio transport stdout carries JSON-RPC frames and nothing else, so
 //! all diagnostics must go to stderr.
 
-#[cfg(windows)]
 mod chronicle;
-#[cfg(windows)]
 mod mcp_server;
-#[cfg(windows)]
 mod report;
 
-#[cfg(windows)]
 fn main() -> anyhow::Result<()> {
     match std::env::args().nth(1).as_deref() {
         Some("--version" | "-V") => {
@@ -44,9 +40,4 @@ fn main() -> anyhow::Result<()> {
         None => {}
     }
     mcp_server::serve_stdio()
-}
-
-#[cfg(not(windows))]
-fn main() -> anyhow::Result<()> {
-    anyhow::bail!("RadioChron requires Windows (it talks to wlanapi.dll).")
 }

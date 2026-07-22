@@ -8,7 +8,7 @@ AI assistant local Wi-Fi diagnostics over stdio: connection-history **verdicts**
 instead of data dumps, live signal sampling, and native WLAN collectors.
 
 Built on the [`radiochron`](https://github.com/sergii-ziborov/radiochron) library. Pure
-Rust, **no MCP SDK**, three third-party dependencies, a ~1.0 MB binary, and **no build
+Rust, **no MCP SDK**, three third-party dependencies, and **no build
 toolchain beyond a stock [`rustup`](https://rustup.rs)**. The optional chronicle
 writes only its rotating local JSONL file; saved passwords are never read and
 nothing leaves the machine.
@@ -53,23 +53,26 @@ Or add it to any MCP client config directly:
 ```
 
 No arguments are required. `RADIOCHRON_CHRONICLE_PATH` optionally overrides
-the default `%LOCALAPPDATA%\RadioChron\chronicle.jsonl` path. The transport is
+the platform-local chronicle path (`%LOCALAPPDATA%\RadioChron` on Windows,
+`~/Library/Application Support/RadioChron` on macOS, or the XDG state directory
+on Linux). The transport is
 newline-delimited JSON-RPC 2.0 over stdio.
 
 ## Tools
 
-Eleven tools with machine-readable input/output schemas, structured results and
-truthful MCP safety annotations.
+Ten portable tools with machine-readable input/output schemas, structured
+results and truthful MCP safety annotations. Windows exposes an eleventh tool,
+`wifi_history`, backed by WLAN AutoConfig.
 
 | Tool | Arguments | Returns |
 |---|---|---|
 | `wifi_status` | — | Every WLAN interface and, for the associated one: SSID, BSSID, PHY type (`ht`/`vht`/`he`/`eht`), signal quality, estimated RSSI in dBm, rx/tx rates |
 | `wifi_networks` | `refresh_scan?: boolean`<br>`detail?: "summary" \| "full"` | Nearby BSS plus cache age, scan completion, per-interface errors, WPA2/WPA3/OWE, cipher, PMF, width and load fields |
 | `wifi_analyze` | `refresh_scan?: boolean` | **Findings, not records.** Co-channel contention, crowded-channel association, weak signal, band-steering and roam candidates, insecure security, hidden SSIDs, scan-quality problems |
-| `wifi_history` | `within_seconds?: number`<br>`max_events?: number`<br>`include_events?: boolean` | **Why it dropped earlier.** Reads the WLAN AutoConfig event log and returns a verdict: reconnect loops, an AP repeatedly failing key exchange, a suspected credential mismatch |
+| `wifi_history` (Windows) | `within_seconds?: number`<br>`max_events?: number`<br>`include_events?: boolean` | **Why it dropped earlier.** Reads the WLAN AutoConfig event log and returns a verdict: reconnect loops, an AP repeatedly failing key exchange, a suspected credential mismatch |
 | `wifi_sample` | `interface_guid?: string`<br>`duration_seconds?: 1..120`<br>`interval_ms?: 250..60000` | Cancelable sampling with progress; collector errors remain distinct from disconnects |
-| `wifi_scan` | — | Triggers a standard scan and waits for each Windows completion/failure notification |
-| `connectivity_diagnose` | `dns_name?: string`<br>`tcp_target?: "host:port"`<br>`internet_target?: "host:port"`<br>`timeout_ms?: 100..30000` | Separates radio, AP authentication, IP/DHCP layer, DNS, TCP and explicit Internet reachability; only supplied targets are contacted |
+| `wifi_scan` | — | Triggers a standard native scan and reports per-interface completion/failure |
+| `connectivity_diagnose` | DNS/TCP/Internet endpoints plus optional portal, TLS and quality targets | Separates radio, authentication, DHCP/static IP, gateway, DNS, TCP, captive portal, TLS, packet loss/jitter and Internet. TLS certificate validation lives in the agent transport; MCP reports that stage as unknown. |
 | `chronicle_start` | `interval_seconds?: 1..300`<br>`signal_threshold_db?: 1..50` | Starts the local rotating change-only recorder |
 | `chronicle_stop` | — | Stops and flushes the recorder |
 | `chronicle_status` | — | Recorder state, path and latest error |
@@ -108,10 +111,11 @@ builds on nothing but `rustup`.
 
 ## Platform
 
-This MCP binary remains Windows-only because it exposes WLAN AutoConfig event
-history. The shared engine now also has a native Linux/nl80211 collector; Linux
-fleet deployment lives in the separate `radiochron-agent` repository. macOS
-CoreWLAN remains on the [roadmap](https://radiochron.com/#roadmap).
+The MCP binary runs on Windows, Linux and macOS. It uses WLAN API on Windows,
+nl80211 on Linux, and CoreWLAN on Apple systems, including Apple Silicon.
+Windows alone exposes WLAN AutoConfig event history; all other tools remain
+available on macOS and Linux. Fleet deployment lives in the separate
+[`radiochron-agent`](https://github.com/sergii-ziborov/radiochron-agent) repository.
 
 ## Safety and privacy
 
