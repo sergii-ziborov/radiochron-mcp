@@ -13,10 +13,13 @@ toolchain beyond a stock [`rustup`](https://rustup.rs)**. The optional chronicle
 writes only its rotating local JSONL file; saved passwords are never read and
 nothing leaves the machine.
 
-The engine, npm launcher and website live independently in
+The engine, Node library, desktop app and website live independently in
 [`radiochron`](https://github.com/sergii-ziborov/radiochron),
-[`radiochron-js`](https://github.com/sergii-ziborov/radiochron-js), and
+[`radiochron-js`](https://github.com/sergii-ziborov/radiochron-js),
+[`radiochron-electron`](https://github.com/sergii-ziborov/radiochron-electron), and
 [`radiochron-site`](https://github.com/sergii-ziborov/radiochron-site).
+This repository depends directly on the Rust core. It is not distributed by
+`radiochron-js`, and RadioChron Desktop does not depend on this server.
 
 ## Install
 
@@ -25,13 +28,6 @@ because a `radiochron-mcp.exe` in a client config reads as internal plumbing.
 
 ```sh
 cargo install --git https://github.com/sergii-ziborov/radiochron-mcp
-```
-
-No Rust toolchain? The [`radiochron`](https://github.com/sergii-ziborov/radiochron-js)
-npm package ships the same binary prebuilt:
-
-```sh
-claude mcp add radiochron -- npx -y radiochron
 ```
 
 ## Register with an MCP client
