@@ -1,6 +1,8 @@
 'use strict';
 
 const assert = require('node:assert/strict');
+const { existsSync } = require('node:fs');
+const { join } = require('node:path');
 const test = require('node:test');
 const packageJson = require('../package.json');
 const { resolveBinary, targetFor } = require('./bin');
@@ -22,4 +24,16 @@ test('native target selection covers Windows, Linux x64/ARM64 and both Mac archi
 
 test('unsupported native targets fail closed', () => {
   assert.throws(() => targetFor('linux', 'ia32'), /unsupported platform/);
+});
+
+test('npm package boundary stays native-server only', () => {
+  assert.deepEqual(packageJson.files, [
+    'npm/bin.js',
+    'vendor',
+    'server.json',
+    'README.md',
+    'LICENSE-MIT',
+    'LICENSE-APACHE'
+  ]);
+  assert.equal(existsSync(join(__dirname, '..', 'scripts', 'verify-package.js')), true);
 });

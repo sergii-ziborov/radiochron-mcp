@@ -30,8 +30,8 @@ because a `radiochron-mcp.exe` in a client config reads as internal plumbing.
 cargo install --git https://github.com/sergii-ziborov/radiochron-mcp
 ```
 
-Publication is pending. The separate `radiochron-mcp` npm package carries provenance-checked native
-binaries for Windows x64, Linux x64/ARM64, Intel Mac, and Apple Silicon. It is built
+The separate `radiochron-mcp` npm package carries revision-checked native binaries
+for Windows x64, Linux x64/ARM64, Intel Mac, and Apple Silicon. It is assembled
 and published from this repository; `radiochron-js` is an independent Node
 library and does not contain this server.
 
@@ -39,13 +39,13 @@ library and does not contain this server.
 claude mcp add radiochron -- npx -y radiochron-mcp
 ```
 
-A matching `v<package-version>` tag publishes the verified native npm package
-through npm trusted publishing, then authenticates to the official MCP Registry
-with GitHub OIDC and publishes `server.json`. The tag, npm version, and MCP
-metadata version must match. For the initial package-name claim only, store a
-granular publish token as the `NPM_TOKEN` repository secret and push the
-matching tag. Then configure `ci.yml` as the package's trusted publisher on
-npmjs.com and revoke/delete that one-time secret; no MCP token is needed.
+Releases are deliberately published from a maintainer console. Download all five
+native artifacts from one green CI run, point the five
+`RADIOCHRON_MCP_BINARY_*` variables at the matching binaries, then run
+`npm pack`, `npm publish <archive> --access public`, and verify the package from
+the public registry. Only after that, authenticate the official
+`mcp-publisher`, publish `server.json`, verify the Registry entry, and push the
+matching `v<package-version>` tag. No npm credential is stored in GitHub.
 
 ## Register with an MCP client
 
