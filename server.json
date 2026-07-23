@@ -7,12 +7,12 @@
     "url": "https://github.com/sergii-ziborov/radiochron-mcp",
     "source": "github"
   },
-  "version": "0.2.1",
+  "version": "0.3.0",
   "packages": [
     {
       "registryType": "npm",
       "identifier": "radiochron-mcp",
-      "version": "0.2.1",
+      "version": "0.3.0",
       "transport": {
         "type": "stdio"
       }
