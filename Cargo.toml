@@ -1,10 +1,10 @@
 [package]
 name = "radiochron-mcp"
-description = "Model Context Protocol server exposing local Wi-Fi diagnostics over stdio. Pure Rust, no MCP SDK."
-keywords = ["mcp", "wifi", "wlan", "diagnostics", "model-context-protocol"]
+description = "Pure-Rust MCP server for local Wi-Fi diagnostics and portable BLE history/risk analysis"
+keywords = ["mcp", "wifi", "bluetooth", "diagnostics", "model-context-protocol"]
 categories = ["command-line-utilities", "network-programming"]
 readme = "README.md"
-version = "0.3.0"
+version = "0.4.0"
 edition = "2021"
 rust-version = "1.78"
 authors = ["Sergii Ziborov"]
@@ -19,7 +19,7 @@ path = "src/main.rs"
 [dependencies]
 # Pin the engine revision so a released MCP binary always has a reproducible
 # collector/analysis implementation independent of future core changes.
-radiochron = { git = "https://github.com/sergii-ziborov/radiochron", rev = "c5c3b4c30b5395b2c8cbc459f4e85982e5fdbb4a", version = "0.3.0" }
+radiochron = { git = "https://github.com/sergii-ziborov/radiochron", rev = "fbd91670c4f15ce6d0e791d78da15189afb9f7e9", version = "0.4.0", features = ["ble"] }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 anyhow = "1"

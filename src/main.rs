@@ -12,6 +12,7 @@
 //! On the stdio transport stdout carries JSON-RPC frames and nothing else, so
 //! all diagnostics must go to stderr.
 
+mod ble;
 mod chronicle;
 mod mcp_server;
 mod report;

@@ -12,6 +12,7 @@ use serde_json::{json, Value};
 use radiochron::wlan;
 use radiochron::wlan::bss::BssSummary;
 
+use crate::ble::BleService;
 use crate::chronicle::ChronicleService;
 
 const PROTOCOL_VERSION: &str = "2025-06-18";
@@ -30,6 +31,7 @@ const URI_REPORT_JSON: &str = "radiochron://report/latest.json";
 const URI_STATUS: &str = "radiochron://status";
 const URI_NETWORKS: &str = "radiochron://networks";
 const URI_CHRONICLE: &str = "radiochron://chronicle/recent";
+const URI_BLE_HISTORIES: &str = "radiochron://ble/histories";
 
 #[derive(Clone, Copy, PartialEq, Eq)]
 enum Phase {
@@ -40,6 +42,7 @@ enum Phase {
 
 struct Server {
     phase: Mutex<Phase>,
+    ble: BleService,
     chronicle: ChronicleService,
     cancellations: Mutex<HashMap<String, Arc<AtomicBool>>>,
 }
@@ -59,6 +62,7 @@ impl Server {
     fn new() -> Self {
         Self {
             phase: Mutex::new(Phase::Uninitialized),
+            ble: BleService::new(),
             chronicle: ChronicleService::new(),
             cancellations: Mutex::new(HashMap::new()),
         }
@@ -178,7 +182,7 @@ impl Server {
                 "name": "radiochron",
                 "version": env!("CARGO_PKG_VERSION")
             },
-            "instructions": "Local Wi-Fi diagnostics for Windows, Linux and macOS. SSIDs, BSSIDs and MAC addresses are sensitive. Most tools are read-only; wifi_scan and refresh_scan initiate a standard radio scan, while chronicle_start/stop control a local recorder. Windows event history is unavailable on other platforms."
+            "instructions": "Local Wi-Fi diagnostics plus portable BLE history/risk analysis. SSIDs, BSSIDs and radio addresses are sensitive. Wi-Fi tools use native collectors; BLE tools analyze caller-supplied advertisements and never silently start a scanner. RSSI is not distance and findings carry limitations."
         }))
     }
 
@@ -230,7 +234,8 @@ impl Server {
         }
 
         let allowed = match name {
-            "wifi_status" | "wifi_scan" | "chronicle_stop" | "chronicle_status" => &[][..],
+            "wifi_status" | "wifi_scan" | "chronicle_stop" | "chronicle_status"
+            | "ble_histories" => &[][..],
             "wifi_networks" => &["refresh_scan", "detail"][..],
             "wifi_analyze" => &["refresh_scan"][..],
             "wifi_history" => &["within_seconds", "max_events", "include_events"][..],
@@ -248,6 +253,10 @@ impl Server {
             ][..],
             "chronicle_start" => &["interval_seconds", "signal_threshold_db"][..],
             "chronicle_recent" => &["max_entries"][..],
+            "ble_identify" => &["advertisement"][..],
+            "ble_tracker_reset" => &["policy"][..],
+            "ble_observe" => &["observation"][..],
+            "ble_evaluate" => &["now_ms"][..],
             other => {
                 return Err(rpc_error(
                     METHOD_NOT_FOUND,
@@ -270,6 +279,11 @@ impl Server {
             "wifi_history" => history(&arguments),
             "wifi_sample" => sample(&arguments, context),
             "connectivity_diagnose" => diagnose_connectivity(&arguments),
+            "ble_identify" => self.ble.identify(&arguments),
+            "ble_tracker_reset" => self.ble.reset(&arguments),
+            "ble_observe" => self.ble.observe(&arguments),
+            "ble_histories" => self.ble.histories(),
+            "ble_evaluate" => self.ble.evaluate(&arguments),
             "chronicle_start" => (|| -> anyhow::Result<Value> {
                 let interval = bounded_u64(&arguments, "interval_seconds", 5, 1, 300)?;
                 let threshold = bounded_i32(&arguments, "signal_threshold_db", 8, 1, 50)?;
@@ -302,6 +316,10 @@ impl Server {
             URI_CHRONICLE => (
                 "application/json",
                 self.chronicle.recent(100).and_then(|value| encode(&value)),
+            ),
+            URI_BLE_HISTORIES => (
+                "application/json",
+                self.ble.histories().and_then(|value| encode(&value)),
             ),
             other => {
                 return Err(rpc_error(
@@ -639,6 +657,7 @@ fn tool_definitions() -> Value {
     if cfg!(windows) {
         tools.insert(3, tool("wifi_history", "Wi-Fi event history", "Windows WLAN AutoConfig history and evidence-based verdicts.", json!({"type":"object","properties":{"within_seconds":{"type":"integer","minimum":1,"maximum":MAX_HISTORY_WINDOW_S},"max_events":{"type":"integer","minimum":1,"maximum":2000},"include_events":{"type":"boolean"}},"additionalProperties":false}), history_output, true, true));
     }
+    tools.extend(crate::ble::tool_definitions());
     json!(tools)
 }
 
@@ -682,6 +701,7 @@ fn resource_definitions() -> Value {
         {"uri":URI_STATUS,"name":"wifi_status","title":"Current Wi-Fi Connection","description":"Per-interface association state.","mimeType":"application/json"},
         {"uri":URI_NETWORKS,"name":"wifi_networks","title":"Visible Networks","description":"Compact cached BSS list.","mimeType":"application/json"},
         {"uri":URI_CHRONICLE,"name":"chronicle_recent","title":"Recent Radio Changes","description":"Recent entries from the local change-only chronicle.","mimeType":"application/json"}
+        ,{"uri":URI_BLE_HISTORIES,"name":"ble_histories","title":"BLE Histories","description":"Process-local BLE identity history supplied by callers.","mimeType":"application/json"}
     ])
 }
 
@@ -1004,7 +1024,7 @@ mod tests {
         let server = ready_server();
         let out = response(&server, r#"{"jsonrpc":"2.0","id":2,"method":"tools/list"}"#);
         let tools = out["result"]["tools"].as_array().unwrap();
-        assert_eq!(tools.len(), if cfg!(windows) { 11 } else { 10 });
+        assert_eq!(tools.len(), if cfg!(windows) { 16 } else { 15 });
         for tool in tools {
             assert_eq!(tool["inputSchema"]["type"], "object");
             assert_eq!(tool["outputSchema"]["type"], "object");
@@ -1025,6 +1045,12 @@ mod tests {
             .find(|tool| tool["name"] == "connectivity_diagnose")
             .unwrap();
         assert_eq!(connectivity["annotations"]["openWorldHint"], true);
+        let ble_observe = tools
+            .iter()
+            .find(|tool| tool["name"] == "ble_observe")
+            .unwrap();
+        assert_eq!(ble_observe["annotations"]["readOnlyHint"], false);
+        assert_eq!(ble_observe["annotations"]["openWorldHint"], false);
 
         let sample = tools
             .iter()
@@ -1043,10 +1069,13 @@ mod tests {
             r#"{"jsonrpc":"2.0","id":3,"method":"resources/list"}"#,
         );
         let resources = out["result"]["resources"].as_array().unwrap();
-        assert_eq!(resources.len(), 5);
+        assert_eq!(resources.len(), 6);
         assert!(resources
             .iter()
             .any(|resource| resource["uri"] == URI_CHRONICLE));
+        assert!(resources
+            .iter()
+            .any(|resource| resource["uri"] == URI_BLE_HISTORIES));
     }
 
     #[test]

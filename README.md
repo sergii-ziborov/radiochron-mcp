@@ -3,7 +3,8 @@
 **[radiochron.com](https://radiochron.com)** · the chronicle of your radio.
 
 A [Model Context Protocol](https://modelcontextprotocol.io) server that gives an
-AI assistant local Wi-Fi diagnostics over stdio: connection-history **verdicts**
+AI assistant local Wi-Fi diagnostics plus BLE history/risk analysis over stdio:
+connection-history **verdicts**
 (reconnect loops, an AP failing key exchange, a credential mismatch), findings
 instead of data dumps, live signal sampling, and native WLAN collectors.
 
@@ -73,8 +74,8 @@ newline-delimited JSON-RPC 2.0 over stdio.
 
 ## Tools
 
-Ten portable tools with machine-readable input/output schemas, structured
-results and truthful MCP safety annotations. Windows exposes an eleventh tool,
+Fifteen portable tools with machine-readable input/output schemas, structured
+results and truthful MCP safety annotations. Windows exposes a sixteenth tool,
 `wifi_history`, backed by WLAN AutoConfig.
 
 | Tool | Arguments | Returns |
@@ -90,6 +91,17 @@ results and truthful MCP safety annotations. Windows exposes an eleventh tool,
 | `chronicle_stop` | — | Stops and flushes the recorder |
 | `chronicle_status` | — | Recorder state, path and latest error |
 | `chronicle_recent` | `max_entries?: 1..1000` | Recent entries from active and rotated files |
+| `ble_identify` | `advertisement` | Protocol-aware opaque identity and payload fingerprint |
+| `ble_tracker_reset` | optional detector policy, allowlist and expected identities | Clears process-local BLE history and applies policy |
+| `ble_observe` | caller-supplied timed observation and sensor context | Updated history plus persistence, co-travel, clone and flood evidence |
+| `ble_histories` | â€” | First/last seen, recurrence, sensors, movement sessions and RSSI summary |
+| `ble_evaluate` | `now_ms` | Time-based disappearance findings for expected identities |
+
+BLE tools do not silently start a platform scanner. The caller supplies
+advertisements from an authorized scanner; the server keeps only process-local
+history. RSSI is not converted to distance, private addresses are marked
+ephemeral unless a supported protocol or caller supplies a stronger identity,
+and every risk finding includes its limitations.
 
 **Prefer `wifi_analyze`.** On a real 43-BSS environment it answers in ~800 bytes
 where the full BSS list costs ~41 KB — because it returns the conclusion, not
