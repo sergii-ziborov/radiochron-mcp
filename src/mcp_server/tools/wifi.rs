@@ -6,7 +6,9 @@ use serde_json::{json, Value};
 
 use super::super::schema::{bounded_optional_string, bounded_u64, optional_bool, optional_string};
 use super::super::transport::RequestContext;
-use super::super::{MAX_HISTORY_WINDOW_S, SCAN_TIMEOUT};
+#[cfg(windows)]
+use super::super::MAX_HISTORY_WINDOW_S;
+use super::super::SCAN_TIMEOUT;
 
 pub(super) fn collect_networks(arguments: &Value) -> anyhow::Result<Value> {
     let detail = optional_string(arguments, "detail")?.unwrap_or("summary");
