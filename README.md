@@ -2,153 +2,159 @@
 
 **[radiochron.com](https://radiochron.com)** · the chronicle of your radio.
 
-A [Model Context Protocol](https://modelcontextprotocol.io) server that gives an
-AI assistant local Wi-Fi diagnostics plus BLE history/risk analysis over stdio:
-connection-history **verdicts**
-(reconnect loops, an AP failing key exchange, a credential mismatch), findings
-instead of data dumps, live signal sampling, and native WLAN collectors.
+A local-first [Model Context Protocol](https://modelcontextprotocol.io) server
+for Wi-Fi incident diagnosis and Bluetooth Low Energy observation. It combines
+native radio collection with the
+[`radiochron`](https://github.com/sergii-ziborov/radiochron) Rust core, then
+returns typed conclusions instead of forcing an assistant to interpret raw
+operating-system output.
 
-Built on the [`radiochron`](https://github.com/sergii-ziborov/radiochron) library. Pure
-Rust, **no MCP SDK**, three third-party dependencies, and **no build
-toolchain beyond a stock [`rustup`](https://rustup.rs)**. The optional chronicle
-writes only its rotating local JSONL file; saved passwords are never read and
-nothing leaves the machine.
+The preferred MCP revision is `2025-11-25`; clients that request
+`2025-06-18` receive the compatible legacy tool shape. Every tool has input and
+output schemas, structured content, safety annotations, explicit execution
+semantics, cancellation where work is long-running, and actionable separation
+between JSON-RPC protocol errors and tool execution errors.
 
-The engine, Node library, desktop app and website live independently in
-[`radiochron`](https://github.com/sergii-ziborov/radiochron),
-[`radiochron-js`](https://github.com/sergii-ziborov/radiochron-js),
-[`radiochron-electron`](https://github.com/sergii-ziborov/radiochron-electron), and
-[`radiochron-site`](https://github.com/sergii-ziborov/radiochron-site).
-This repository depends directly on the Rust core. It is not distributed by
-`radiochron-js`, and RadioChron Desktop does not depend on this server.
+RadioChron repositories remain independent:
+
+- [`radiochron`](https://github.com/sergii-ziborov/radiochron) is the Rust/IoT core.
+- [`radiochron-js`](https://github.com/sergii-ziborov/radiochron-js) is the Node/npm library; it does not ship MCP.
+- [`radiochron-mcp`](https://github.com/sergii-ziborov/radiochron-mcp) is this pure-Rust MCP server.
+- [`radiochron-agent`](https://github.com/sergii-ziborov/radiochron-agent) is the unattended durable collector/exporter and does not depend on MCP.
+- [`radiochron-electron`](https://github.com/sergii-ziborov/radiochron-electron) is the standalone desktop app and does not depend on MCP.
 
 ## Install
 
-The crate is `radiochron-mcp`; the binary it installs is named `radiochron`,
-because a `radiochron-mcp.exe` in a client config reads as internal plumbing.
-
-```sh
-cargo install --git https://github.com/sergii-ziborov/radiochron-mcp
-```
-
-The separate `radiochron-mcp` npm package carries revision-checked native binaries
-for Windows x64, Linux x64/ARM64, Intel Mac, and Apple Silicon. It is assembled
-and published from this repository; `radiochron-js` is an independent Node
-library and does not contain this server.
+The npm package carries verified native binaries for Windows x64, Linux
+x64/ARM64, Intel Mac, and Apple Silicon:
 
 ```sh
 claude mcp add radiochron -- npx -y radiochron-mcp
 ```
 
-Releases are deliberately published from a maintainer console. Download all five
-native artifacts from one green CI run, point the five
-`RADIOCHRON_MCP_BINARY_*` variables at the matching binaries, then run
-`npm pack`, `npm publish <archive> --access public`, and verify the package from
-the public registry. Only after that, authenticate the official
-`mcp-publisher`, publish `server.json`, verify the Registry entry, and push the
-matching `v<package-version>` tag. No npm credential is stored in GitHub.
-
-## Register with an MCP client
-
-For Claude Code, point it at the installed binary:
+Or install the Rust binary from source:
 
 ```sh
-claude mcp add radiochron -- radiochron
+cargo install --git https://github.com/sergii-ziborov/radiochron-mcp
 ```
 
-Or add it to any MCP client config directly:
+Building on Debian/Ubuntu requires `libdbus-1-dev` and `pkg-config` for the
+BlueZ adapter. Prebuilt npm users do not need a Rust toolchain.
+
+Register an installed binary with any stdio MCP client:
 
 ```json
 {
   "mcpServers": {
-    "radiochron": { "command": "radiochron" }
+    "radiochron": {
+      "command": "radiochron"
+    }
   }
 }
 ```
 
-No arguments are required. `RADIOCHRON_CHRONICLE_PATH` optionally overrides
-the platform-local chronicle path (`%LOCALAPPDATA%\RadioChron` on Windows,
-`~/Library/Application Support/RadioChron` on macOS, or the XDG state directory
-on Linux). The transport is
-newline-delimited JSON-RPC 2.0 over stdio.
+`RADIOCHRON_CHRONICLE_PATH` optionally overrides the local chronicle path:
+`%LOCALAPPDATA%\RadioChron` on Windows, `~/Library/Application
+Support/RadioChron` on macOS, or the XDG state directory on Linux.
 
-## Tools
+## Start with one tool
 
-Fifteen portable tools with machine-readable input/output schemas, structured
-results and truthful MCP safety annotations. Windows exposes a sixteenth tool,
+Use `diagnose_incident` first. One request returns independent sections for:
+
+- current Wi-Fi interfaces and association;
+- RF/environment analysis;
+- radio → authentication → DHCP → gateway → DNS → TCP → Internet stages;
+- Windows WLAN event history when available;
+- recent change-only chronicle entries;
+- an optional native BLE advertisement scan, normalized identities, retained
+  histories, and evidence-based findings.
+
+One unavailable collector does not discard the rest of the incident. Each
+section has `ok`, `data`, or an actionable `error`, and the top-level
+`problems` list is compact enough for an assistant to explain directly.
+Targets are never contacted unless the caller supplies them.
+
+## Tool surface
+
+Seventeen tools are portable. Windows exposes an eighteenth,
 `wifi_history`, backed by WLAN AutoConfig.
 
-| Tool | Arguments | Returns |
-|---|---|---|
-| `wifi_status` | — | Every WLAN interface and, for the associated one: SSID, BSSID, PHY type (`ht`/`vht`/`he`/`eht`), signal quality, estimated RSSI in dBm, rx/tx rates |
-| `wifi_networks` | `refresh_scan?: boolean`<br>`detail?: "summary" \| "full"` | Nearby BSS plus cache age, scan completion, per-interface errors, WPA2/WPA3/OWE, cipher, PMF, width and load fields |
-| `wifi_analyze` | `refresh_scan?: boolean` | **Findings, not records.** Co-channel contention, crowded-channel association, weak signal, band-steering and roam candidates, insecure security, hidden SSIDs, scan-quality problems |
-| `wifi_history` (Windows) | `within_seconds?: number`<br>`max_events?: number`<br>`include_events?: boolean` | **Why it dropped earlier.** Reads the WLAN AutoConfig event log and returns a verdict: reconnect loops, an AP repeatedly failing key exchange, a suspected credential mismatch |
-| `wifi_sample` | `interface_guid?: string`<br>`duration_seconds?: 1..120`<br>`interval_ms?: 250..60000` | Cancelable sampling with progress; collector errors remain distinct from disconnects |
-| `wifi_scan` | — | Triggers a standard native scan and reports per-interface completion/failure |
-| `connectivity_diagnose` | DNS/TCP/Internet endpoints plus optional portal, TLS and quality targets | Separates radio, authentication, DHCP/static IP, gateway, DNS, TCP, captive portal, TLS, packet loss/jitter and Internet. TLS certificate validation lives in the agent transport; MCP reports that stage as unknown. |
-| `chronicle_start` | `interval_seconds?: 1..300`<br>`signal_threshold_db?: 1..50` | Starts the local rotating change-only recorder |
-| `chronicle_stop` | — | Stops and flushes the recorder |
-| `chronicle_status` | — | Recorder state, path and latest error |
-| `chronicle_recent` | `max_entries?: 1..1000` | Recent entries from active and rotated files |
-| `ble_identify` | `advertisement` | Protocol-aware opaque identity and payload fingerprint |
-| `ble_tracker_reset` | optional detector policy, allowlist and expected identities | Clears process-local BLE history and applies policy |
-| `ble_observe` | caller-supplied timed observation and sensor context | Updated history plus persistence, co-travel, clone and flood evidence |
-| `ble_histories` | â€” | First/last seen, recurrence, sensors, movement sessions and RSSI summary |
-| `ble_evaluate` | `now_ms` | Time-based disappearance findings for expected identities |
+| Tool | Purpose |
+|---|---|
+| `diagnose_incident` | Orchestrate Wi-Fi, connectivity, history, chronicle, and optional native BLE evidence in one compact response |
+| `wifi_status` | Current state of every WLAN interface |
+| `wifi_networks` | Nearby BSS records with real dBm, security, width, and load; summary or full detail |
+| `wifi_analyze` | Signal, contention, roaming, security, and scan-quality findings |
+| `wifi_history` (Windows) | Reconnect loops, key-exchange failures, and credential-mismatch evidence |
+| `wifi_sample` | Cancelable RSSI/rate/roaming sampling with progress |
+| `wifi_scan` | Native Wi-Fi refresh with per-interface completion/failure |
+| `connectivity_diagnose` | Separate radio, authentication, IP assignment, gateway, DNS, TCP, portal, TLS, quality, and Internet stages |
+| `chronicle_start` | Start the local rotating change-only JSONL recorder |
+| `chronicle_stop` | Stop and flush the recorder |
+| `chronicle_status` | Recorder state, path, counters, and latest error |
+| `chronicle_recent` | Recent entries from active and rotated files |
+| `ble_scan` | Scan native adapters without connecting, normalize advertisements, update histories, and return risk evidence |
+| `ble_identify` | Identify a caller-supplied advertisement and hash its payload |
+| `ble_tracker_reset` | Clear process-local BLE history and apply detector policy |
+| `ble_observe` | Add an externally collected timed observation |
+| `ble_histories` | First/last seen, recurrence, sensors, movement sessions, and RSSI summaries |
+| `ble_evaluate` | Time-based disappearance findings for expected identities |
 
-BLE tools do not silently start a platform scanner. The caller supplies
-advertisements from an authorized scanner; the server keeps only process-local
-history. RSSI is not converted to distance, private addresses are marked
-ephemeral unless a supported protocol or caller supplies a stronger identity,
-and every risk finding includes its limitations.
+`ble_scan` uses WinRT on Windows, BlueZ on Linux, and CoreBluetooth on macOS.
+It listens only for devices observed during the requested scan window, does
+not perform GATT connections, and feeds the same privacy-minimized RadioChron
+tracker used by explicit `ble_observe` calls. iBeacon and Eddystone UID data
+can provide stronger protocol identity; generic private addresses remain
+ephemeral.
 
-**Prefer `wifi_analyze`.** On a real 43-BSS environment it answers in ~800 bytes
-where the full BSS list costs ~41 KB — because it returns the conclusion, not
-the evidence. Every finding carries a `caveat` field stating why it might be
-wrong; that is part of the payload on purpose, since a bare severity invites
-over-trust and several of these signals are genuinely weaker than they look.
+On macOS 11+, the host application or terminal launching the MCP process must
+have Bluetooth permission. An app bundle needs
+`NSBluetoothAlwaysUsageDescription`; a terminal-launched server requires
+Bluetooth access for that terminal in System Settings. Linux requires a
+running BlueZ service and access to the system D-Bus.
 
-Two behaviours worth knowing about `wifi_networks`: the driver cache can be
-empty, so a first empty read is retried once behind a real scan (the `refresh`
-object says what completed) rather than reported as "no networks"; and `summary`
-is the default — ask for `full` (raw IEs, rates, capability bits) only when you
-need those fields.
+## MCP behavior
 
-## Deliberately not exposed
+- Newline-delimited UTF-8 JSON-RPC 2.0 over stdio; stdout contains MCP frames only.
+- Negotiates both `2025-11-25` and `2025-06-18`, preferring the current revision.
+- Current tool definitions declare `execution.taskSupport: "forbidden"` because
+  this local stdio server uses normal cancelable requests rather than durable
+  experimental tasks.
+- Unknown methods and malformed call envelopes use JSON-RPC errors.
+- Tool input/radio/platform failures use `isError: true` so a model can correct
+  arguments or explain the platform problem.
+- Structured results are also serialized into text content for older clients.
+- Source files are architecture-gated at 300 lines; real stdio conformance
+  tests cover current and legacy lifecycle/catalog/error behavior.
 
-The parent project grew collectors that are unsafe to hand to an autonomous
-model. They are **not** part of this server's tool surface, and calling them
-returns `-32601 unknown tool`:
-
-- **plaintext saved Wi-Fi keys** — a model must not be able to read and leak credentials
-- **adapter MAC change / adapter restart / computer rename** — privileged, disruptive, can drop the operator off the network
-- **active LAN sweeps** — emit probe traffic, trip IDS on managed segments
-- **external AI-review shell-out** — arbitrary process execution and off-box data flow
-
-## Why no SDK
-
-The official `rmcp` crate would add `tokio`, `schemars`, and a mandatory
-`chrono` whose `clock` feature depends on `windows-link`/`raw-dylib` —
-reintroducing the exact build requirement this project exists to avoid. The
-stdio transport is a few hundred lines over `serde_json` instead, so the server
-builds on nothing but `rustup`.
-
-## Platform
-
-The MCP binary runs on Windows, Linux and macOS. It uses WLAN API on Windows,
-nl80211 on Linux, and CoreWLAN on Apple systems, including Apple Silicon.
-Windows alone exposes WLAN AutoConfig event history; all other tools remain
-available on macOS and Linux.
+The protocol layer is deliberately implemented without an MCP SDK so its
+lifecycle and error behavior remain small and auditable. Native BLE collection
+does use `btleplug` and `tokio`; these host dependencies stay in this MCP
+repository and do not enter the portable/no-std `radiochron` core.
 
 ## Safety and privacy
 
-SSIDs, BSSIDs, MAC addresses and event logs are sensitive. This server is
-local-first, has no telemetry, and transmits nothing off the machine. Only run
-scans against networks you own or are authorized to test. It is not a packet
-sniffer, a geolocation system, or offensive Wi-Fi tooling.
+SSIDs, BSSIDs, Bluetooth addresses, advertisement payloads, and event logs can
+be sensitive. The server has no telemetry and sends nothing off the machine.
+The chronicle writes only its rotating local JSONL file. Saved Wi-Fi passwords
+are never read.
+
+RSSI is signal evidence, not physical distance or direction. Private Bluetooth
+addresses can rotate, so clone/recurrence claims require protocol identity or
+caller-provided identity. Native BLE scanning never connects to peripherals.
+
+The MCP surface intentionally excludes plaintext Wi-Fi keys, adapter MAC
+changes, adapter restarts, computer rename, active LAN sweeps, arbitrary shell
+execution, and external AI review.
+
+## Release
+
+Releases are assembled from one green cross-platform CI run. The npm archive
+must contain revision-matched binaries and provenance sidecars for all five
+targets. After public npm verification, publish the matching `server.json` to
+the official MCP Registry and only then create/push the matching immutable tag.
 
 ## License
 
-Licensed under the [MIT License](LICENSE-MIT). The underlying `radiochron`
-Rust core remains separately dual-licensed under MIT or Apache-2.0.
+Licensed under the [MIT License](LICENSE-MIT). The underlying `radiochron` Rust
+core remains separately dual-licensed under MIT or Apache-2.0.

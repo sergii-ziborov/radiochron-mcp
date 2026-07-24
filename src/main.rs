@@ -13,6 +13,7 @@
 //! all diagnostics must go to stderr.
 
 mod ble;
+mod ble_scan;
 mod chronicle;
 mod mcp_server;
 mod report;

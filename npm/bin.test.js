@@ -5,6 +5,7 @@ const { existsSync } = require('node:fs');
 const { join } = require('node:path');
 const test = require('node:test');
 const packageJson = require('../package.json');
+const serverJson = require('../server.json');
 const { resolveBinary, targetFor } = require('./bin');
 
 test('package identity is owned by the MCP repository', () => {
@@ -40,4 +41,11 @@ test('npm package boundary stays native-server only', () => {
 test('the standalone MCP server is MIT licensed', () => {
   assert.equal(packageJson.license, 'MIT');
   assert.equal(packageJson.files.includes('LICENSE-APACHE'), false);
+});
+
+test('npm and MCP Registry release metadata stay aligned', () => {
+  assert.equal(serverJson.version, packageJson.version);
+  assert.equal(serverJson.packages[0].version, packageJson.version);
+  assert.equal(serverJson.packages[0].identifier, packageJson.name);
+  assert.ok(serverJson.description.length <= 100);
 });

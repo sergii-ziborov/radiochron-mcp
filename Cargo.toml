@@ -1,10 +1,10 @@
 [package]
 name = "radiochron-mcp"
-description = "Pure-Rust MCP server for local Wi-Fi diagnostics and portable BLE history/risk analysis"
+description = "Pure-Rust MCP server for Wi-Fi incident diagnostics and native BLE observation/history"
 keywords = ["mcp", "wifi", "bluetooth", "diagnostics", "model-context-protocol"]
 categories = ["command-line-utilities", "network-programming"]
 readme = "README.md"
-version = "0.4.0"
+version = "0.5.0"
 edition = "2021"
 rust-version = "1.78"
 authors = ["Sergii Ziborov"]
@@ -23,6 +23,11 @@ radiochron = { git = "https://github.com/sergii-ziborov/radiochron", rev = "fbd9
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 anyhow = "1"
+btleplug = "0.11.8"
+futures = "0.3"
+tokio = { version = "1.44", features = ["macros", "rt", "time"] }
+# Keep btleplug's UUID dependency within the crate's declared Rust 1.78 MSRV.
+uuid = "=1.18.1"
 
 [profile.release]
 lto = "thin"

@@ -1,7 +1,7 @@
 {
   "name": "radiochron-mcp",
-  "version": "0.4.0",
-  "description": "Pure-Rust MCP server for local Wi-Fi diagnostics and portable BLE history/risk analysis.",
+  "version": "0.5.0",
+  "description": "Pure-Rust MCP server for Wi-Fi incident diagnostics and native BLE observation/history.",
   "mcpName": "io.github.sergii-ziborov/radiochron",
   "bin": {
     "radiochron": "npm/bin.js",
