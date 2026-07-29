@@ -153,10 +153,11 @@ execution, and external AI review.
 
 Releases are assembled from one green cross-platform CI run. The npm archive
 must contain revision-matched binaries and provenance sidecars for all five
-targets. An immutable version tag publishes the npm package through npm trusted
-publishing, then publishes the matching `server.json` to the official MCP
-Registry through GitHub OIDC. Neither registry requires a long-lived token in
-this repository.
+targets. An immutable version tag publishes the npm package through the
+protected repository secret, then publishes the matching `server.json` to the
+official MCP Registry through GitHub OIDC. The npm credential is the masked,
+tag-gated `NPM_TOKEN` GitHub Actions secret; the MCP Registry uses no
+long-lived token.
 
 ## License
 
