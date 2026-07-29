@@ -1,4 +1,4 @@
-use serde_json::{Map, Value};
+use blazingly_json::{Map, Value};
 
 use super::super::schema::{rpc_error, RpcError};
 use super::super::{INVALID_PARAMS, INVALID_REQUEST};

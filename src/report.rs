@@ -12,7 +12,7 @@
 
 use std::fmt::Write as _;
 
-use serde_json::{json, Value};
+use blazingly_json::{json, Value};
 
 use radiochron::time::now_iso8601;
 use radiochron::wlan::analyze::Analysis;

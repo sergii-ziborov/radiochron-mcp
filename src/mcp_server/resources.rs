@@ -1,6 +1,6 @@
+use blazingly_json::{json, Value};
 use radiochron::wlan;
 use radiochron::wlan::bss::BssSummary;
-use serde_json::{json, Value};
 
 use super::protocol::Server;
 use super::schema::{encode, rpc_error, RpcError};
@@ -99,7 +99,7 @@ fn render_report(format: Format, status: Vec<wlan::WifiStatus>) -> anyhow::Resul
             if let Some(object) = report.as_object_mut() {
                 object.insert(
                     "scan_interface_errors".to_string(),
-                    serde_json::to_value(collection.interface_errors)?,
+                    blazingly_json::to_value(collection.interface_errors)?,
                 );
             }
             encode(&report)

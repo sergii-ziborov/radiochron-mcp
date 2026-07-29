@@ -1,8 +1,8 @@
 use std::time::Duration;
 
+use blazingly_json::{json, Value};
 use radiochron::wlan;
 use radiochron::wlan::bss::BssSummary;
-use serde_json::{json, Value};
 
 use super::super::schema::{bounded_optional_string, bounded_u64, optional_bool, optional_string};
 use super::super::transport::RequestContext;
@@ -28,9 +28,9 @@ pub(super) fn collect_networks(arguments: &Value) -> anyhow::Result<Value> {
         collection = wlan::bss::bss_list_detailed()?;
     }
     let networks = if full {
-        serde_json::to_value(&collection.entries)?
+        blazingly_json::to_value(&collection.entries)?
     } else {
-        serde_json::to_value(
+        blazingly_json::to_value(
             collection
                 .entries
                 .iter()
@@ -76,7 +76,7 @@ pub(super) fn history(arguments: &Value) -> anyhow::Result<Value> {
         "window_seconds": within,
         "event_count": events.len(),
         "verdict": verdict,
-        "events": if include { serde_json::to_value(&events)? } else { Value::Null }
+        "events": if include { blazingly_json::to_value(&events)? } else { Value::Null }
     }))
 }
 
@@ -100,14 +100,14 @@ pub(super) fn sample(arguments: &Value, context: &RequestContext) -> anyhow::Res
             );
             Ok(())
         })?;
-    Ok(serde_json::to_value(run)?)
+    Ok(blazingly_json::to_value(run)?)
 }
 
 pub(super) fn diagnose_connectivity(arguments: &Value) -> anyhow::Result<Value> {
     let config = connectivity_config(arguments)?;
-    Ok(serde_json::to_value(radiochron::connectivity::diagnose(
-        &config,
-    ))?)
+    Ok(blazingly_json::to_value(
+        radiochron::connectivity::diagnose(&config),
+    )?)
 }
 
 pub(super) fn validate_connectivity(arguments: &Value) -> anyhow::Result<()> {

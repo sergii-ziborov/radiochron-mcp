@@ -1,4 +1,4 @@
-use serde_json::{json, Map, Value};
+use blazingly_json::{json, Map, Value};
 
 use super::wifi::connectivity_properties;
 use super::{output_schema, tool};

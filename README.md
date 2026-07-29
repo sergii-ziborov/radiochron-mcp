@@ -127,10 +127,12 @@ running BlueZ service and access to the system D-Bus.
 - Source files are architecture-gated at 300 lines; real stdio conformance
   tests cover current and legacy lifecycle/catalog/error behavior.
 
-The protocol layer is deliberately implemented without an MCP SDK so its
-lifecycle and error behavior remain small and auditable. Native BLE collection
-does use `btleplug` and `tokio`; these host dependencies stay in this MCP
-repository and do not enter the portable/no-std `radiochron` core.
+The tools and resource request paths use the Tokio-free `mcport` runtime and
+its `blazingly-json` value/codec surface. RadioChron keeps only its strict
+initialize/notification lifecycle locally. Native BLE collection uses the
+separate `radiochron-native-ble` crate, which talks directly to WinRT, BlueZ
+D-Bus, and CoreBluetooth without `btleplug`, Tokio, or `futures`. The portable
+`radiochron` core remains independent of host Bluetooth APIs.
 
 ## Safety and privacy
 
@@ -151,8 +153,10 @@ execution, and external AI review.
 
 Releases are assembled from one green cross-platform CI run. The npm archive
 must contain revision-matched binaries and provenance sidecars for all five
-targets. After public npm verification, publish the matching `server.json` to
-the official MCP Registry and only then create/push the matching immutable tag.
+targets. An immutable version tag publishes the npm package through npm trusted
+publishing, then publishes the matching `server.json` to the official MCP
+Registry through GitHub OIDC. Neither registry requires a long-lived token in
+this repository.
 
 ## License
 

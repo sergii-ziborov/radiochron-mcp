@@ -4,7 +4,7 @@ description = "Pure-Rust MCP server for Wi-Fi incident diagnostics and native BL
 keywords = ["mcp", "wifi", "bluetooth", "diagnostics", "model-context-protocol"]
 categories = ["command-line-utilities", "network-programming"]
 readme = "README.md"
-version = "0.5.0"
+version = "0.6.0"
 edition = "2021"
 rust-version = "1.78"
 authors = ["Sergii Ziborov"]
@@ -19,15 +19,12 @@ path = "src/main.rs"
 [dependencies]
 # Pin the engine revision so a released MCP binary always has a reproducible
 # collector/analysis implementation independent of future core changes.
-radiochron = { git = "https://github.com/sergii-ziborov/radiochron", rev = "fbd91670c4f15ce6d0e791d78da15189afb9f7e9", version = "0.4.0", features = ["ble"] }
+radiochron = { version = "=0.5.0", features = ["ble"] }
+radiochron-native-ble = "0.1.0"
 serde = { version = "1", features = ["derive"] }
-serde_json = "1"
+blazingly-json = "0.1.0"
+mcport = "0.3.0"
 anyhow = "1"
-btleplug = "0.11.8"
-futures = "0.3"
-tokio = { version = "1.44", features = ["macros", "rt", "time"] }
-# Keep btleplug's UUID dependency within the crate's declared Rust 1.78 MSRV.
-uuid = "=1.18.1"
 
 [profile.release]
 lto = "thin"
