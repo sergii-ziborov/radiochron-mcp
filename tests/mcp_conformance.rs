@@ -1,7 +1,7 @@
 use std::io::{BufRead, BufReader, Write};
 use std::process::{Child, ChildStdin, ChildStdout, Command, Stdio};
 
-use serde_json::{json, Value};
+use blazingly_json::{json, Value};
 
 struct Session {
     child: Child,
@@ -31,7 +31,7 @@ impl Session {
         self.stdin.flush().unwrap();
         let mut line = String::new();
         self.stdout.read_line(&mut line).unwrap();
-        serde_json::from_str(&line).unwrap()
+        blazingly_json::from_str(&line).unwrap()
     }
 
     fn notify(&mut self, value: Value) {

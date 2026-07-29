@@ -1,4 +1,4 @@
-use serde_json::{json, Value};
+use blazingly_json::{json, Value};
 
 use super::{output_schema, tool};
 

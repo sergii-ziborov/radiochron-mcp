@@ -1,6 +1,6 @@
 use std::sync::atomic::Ordering;
 
-use serde_json::{json, Value};
+use blazingly_json::{json, Value};
 
 use super::protocol::Server;
 use super::resources::{URI_BLE_HISTORIES, URI_CHRONICLE};
@@ -30,7 +30,7 @@ fn ready_server(version: &str) -> Server {
 }
 
 fn response(server: &Server, line: &str) -> Value {
-    serde_json::from_str(
+    blazingly_json::from_str(
         &server
             .handle_line(line, &RequestContext::idle())
             .expect("expected response"),

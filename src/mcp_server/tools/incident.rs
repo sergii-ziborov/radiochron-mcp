@@ -1,7 +1,7 @@
 use std::time::{SystemTime, UNIX_EPOCH};
 
+use blazingly_json::{json, Map, Value};
 use radiochron::wlan;
-use serde_json::{json, Map, Value};
 
 use super::super::protocol::Server;
 use super::super::schema::{bounded_optional_string, bounded_u64, optional_bool};

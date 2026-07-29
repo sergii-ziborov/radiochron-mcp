@@ -39,6 +39,12 @@ jobs:
           components: clippy,rustfmt
       - uses: Swatinem/rust-cache@v2
       - run: cargo fmt --check
+      - name: Enforce Tokio-free host boundary
+        run: >-
+          python -c "import json,subprocess;
+          names={p['name'] for p in json.loads(subprocess.check_output(['cargo','metadata','--locked','--format-version','1']))['packages']};
+          bad=sorted(names & {'tokio','btleplug','futures'});
+          assert not bad, f'forbidden runtime dependencies: {bad}'"
       - run: cargo clippy --all-targets -- -D warnings
       - run: cargo test
       - run: cargo build --release
@@ -132,11 +138,15 @@ jobs:
   npm-package:
     needs: [portable, windows-native]
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
     steps:
       - uses: actions/checkout@v6
       - uses: actions/setup-node@v6
         with:
           node-version: 24
+          registry-url: https://registry.npmjs.org
       - uses: actions/download-artifact@v7
         with:
           name: radiochron-mcp-linux-x64
@@ -169,3 +179,30 @@ jobs:
           npm pack --dry-run
           npm run verify:package
           node npm/bin.js --build-info
+      - name: Publish npm package with trusted publishing
+        if: startsWith(github.ref, 'refs/tags/v')
+        env:
+          RADIOCHRON_MCP_BINARY_WIN32_X64: ${{ runner.temp }}/win32-x64/radiochron.exe
+          RADIOCHRON_MCP_BINARY_LINUX_X64: ${{ runner.temp }}/linux-x64/radiochron
+          RADIOCHRON_MCP_BINARY_LINUX_ARM64: ${{ runner.temp }}/linux-arm64/radiochron
+          RADIOCHRON_MCP_BINARY_DARWIN_X64: ${{ runner.temp }}/darwin-x64/radiochron
+          RADIOCHRON_MCP_BINARY_DARWIN_ARM64: ${{ runner.temp }}/darwin-arm64/radiochron
+        run: |
+          npm install --global npm@latest
+          npm publish --provenance --access public
+      - name: Install pinned MCP Registry publisher
+        if: startsWith(github.ref, 'refs/tags/v')
+        env:
+          MCP_PUBLISHER_VERSION: v1.7.9
+          MCP_PUBLISHER_SHA256: ab128162b0616090b47cf245afe0a23f3ef08936fdce19074f5ba0a4469281ac
+        run: |
+          curl --fail --location --silent --show-error \
+            "https://github.com/modelcontextprotocol/registry/releases/download/${MCP_PUBLISHER_VERSION}/mcp-publisher_linux_amd64.tar.gz" \
+            --output mcp-publisher.tar.gz
+          echo "${MCP_PUBLISHER_SHA256}  mcp-publisher.tar.gz" | sha256sum --check
+          tar xzf mcp-publisher.tar.gz mcp-publisher
+      - name: Publish server to the official MCP Registry
+        if: startsWith(github.ref, 'refs/tags/v')
+        run: |
+          ./mcp-publisher login github-oidc
+          ./mcp-publisher publish

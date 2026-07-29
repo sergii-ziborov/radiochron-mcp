@@ -2,7 +2,7 @@ mod chronicle;
 mod incident;
 mod wifi;
 
-use serde_json::{json, Value};
+use blazingly_json::{json, Value};
 
 use super::LATEST_PROTOCOL_VERSION;
 

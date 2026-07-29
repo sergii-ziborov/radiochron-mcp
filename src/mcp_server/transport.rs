@@ -2,7 +2,7 @@ use std::io::{BufRead, Write};
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{mpsc, Arc};
 
-use serde_json::{json, Value};
+use blazingly_json::{json, JsonCursor, Value};
 
 use super::protocol::{RegisteredRequest, Server};
 
@@ -70,29 +70,45 @@ pub fn serve_stdio() -> anyhow::Result<()> {
             continue;
         }
         request_worker_panicked |= reap_finished_workers(&mut workers);
-        if let Some((id, progress_token)) = tool_call_metadata(&line) {
-            let server = server.clone();
-            let response_tx = output_tx.clone();
-            let progress_tx = output_tx.clone();
-            let cancelled = server.register_request(&id);
-            workers.push(std::thread::spawn(move || {
-                let _registration = RegisteredRequest {
-                    server: server.clone(),
-                    id,
-                };
-                let context = RequestContext {
-                    cancelled,
-                    progress_token,
-                    output: Some(progress_tx),
-                };
-                if let Some(response) = server.handle_line(&line, &context) {
-                    let _ = response_tx.send(response);
+        match mcport_route(&line) {
+            Some(McportRoute::ToolCall { id, progress_token }) => {
+                let server = server.clone();
+                let response_tx = output_tx.clone();
+                let progress_tx = output_tx.clone();
+                let cancelled = server.register_request(&id);
+                workers.push(std::thread::spawn(move || {
+                    let _registration = RegisteredRequest {
+                        server: server.clone(),
+                        id,
+                    };
+                    let context = RequestContext {
+                        cancelled,
+                        progress_token,
+                        output: Some(progress_tx),
+                    };
+                    if let Some(response) =
+                        super::tools::handle_mcport_line(&server, &line, &context)
+                    {
+                        let _ = response_tx.send(response);
+                    }
+                }));
+            }
+            Some(McportRoute::Immediate) => {
+                if let Some(response) =
+                    super::tools::handle_mcport_line(&server, &line, &RequestContext::idle())
+                {
+                    output_tx
+                        .send(response)
+                        .map_err(|_| anyhow::anyhow!("stdout writer stopped"))?;
                 }
-            }));
-        } else if let Some(response) = server.handle_line(&line, &RequestContext::idle()) {
-            output_tx
-                .send(response)
-                .map_err(|_| anyhow::anyhow!("stdout writer stopped"))?;
+            }
+            None => {
+                if let Some(response) = server.handle_line(&line, &RequestContext::idle()) {
+                    output_tx
+                        .send(response)
+                        .map_err(|_| anyhow::anyhow!("stdout writer stopped"))?;
+                }
+            }
         }
     }
 
@@ -123,15 +139,60 @@ fn reap_finished_workers(workers: &mut Vec<std::thread::JoinHandle<()>>) -> bool
     panicked
 }
 
-fn tool_call_metadata(line: &str) -> Option<(Value, Option<Value>)> {
-    let message: Value = serde_json::from_str(line.trim_start_matches('\u{feff}')).ok()?;
-    if message.get("method")?.as_str()? != "tools/call" {
-        return None;
+enum McportRoute {
+    ToolCall {
+        id: Value,
+        progress_token: Option<Value>,
+    },
+    Immediate,
+}
+
+fn mcport_route(line: &str) -> Option<McportRoute> {
+    let mut method = None;
+    let mut id = None;
+    let mut progress_token = None;
+    let mut cursor = JsonCursor::from_str(line.trim_start_matches('\u{feff}'));
+    cursor
+        .object(|request| {
+            while let Some(field) = request.next_field()? {
+                match field.name() {
+                    "method" => method = Some(field.deserialize::<String>()?),
+                    "id" => id = Some(field.deserialize::<Value>()?),
+                    "params" => field.object(|params| {
+                        while let Some(field) = params.next_field()? {
+                            if field.name() == "_meta" {
+                                field.object(|metadata| {
+                                    while let Some(field) = metadata.next_field()? {
+                                        if field.name() == "progressToken" {
+                                            progress_token = Some(field.deserialize::<Value>()?);
+                                        } else {
+                                            field.skip()?;
+                                        }
+                                    }
+                                    Ok(())
+                                })?;
+                            } else {
+                                field.skip()?;
+                            }
+                        }
+                        Ok(())
+                    })?,
+                    _ => field.skip()?,
+                }
+            }
+            Ok(())
+        })
+        .ok()?;
+    cursor.end().ok()?;
+
+    match method.as_deref()? {
+        "tools/call" => Some(McportRoute::ToolCall {
+            id: id?,
+            progress_token: progress_token.filter(|value| value.is_string() || value.is_number()),
+        }),
+        "tools/list" | "resources/list" | "resources/templates/list" | "resources/read" => {
+            Some(McportRoute::Immediate)
+        }
+        _ => None,
     }
-    let id = message.get("id")?.clone();
-    let progress_token = message
-        .pointer("/params/_meta/progressToken")
-        .filter(|value| value.is_string() || value.is_number())
-        .cloned();
-    Some((id, progress_token))
 }

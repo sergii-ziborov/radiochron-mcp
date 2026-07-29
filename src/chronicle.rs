@@ -6,10 +6,10 @@ use std::sync::{Arc, Mutex};
 use std::thread::JoinHandle;
 use std::time::Duration;
 
+use blazingly_json::{json, Value};
 use radiochron::chronicle::{
     read_recent_jsonl, JsonlSink, Recorder, RecorderOptions, RotationPolicy,
 };
-use serde_json::{json, Value};
 
 #[derive(Clone)]
 pub struct ChronicleService {

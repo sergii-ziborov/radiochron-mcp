@@ -2,8 +2,8 @@ use std::collections::BTreeMap;
 use std::sync::{Mutex, MutexGuard};
 use std::time::Instant;
 
+use blazingly_json::{json, Value};
 use radiochron::ble::{Advertisement, Observation, SensorContext, Tracker, TrackerPolicy};
-use serde_json::{json, Value};
 
 use crate::mcp_server::catalog::{output_schema, tool};
 use crate::mcp_server::schema::{bounded_optional_string, bounded_u64, optional_bool, required};
@@ -44,7 +44,7 @@ impl BleService {
         for advertisement in scan.advertisements {
             let observation = Observation {
                 monotonic_ms,
-                unix_epoch_ms: Some(scan.observed_at_epoch_ms as i64),
+                unix_epoch_ms: Some(scan.observed_at_epoch_ms),
                 context: sensor.clone(),
                 advertisement: advertisement.clone(),
             };
@@ -86,7 +86,7 @@ impl BleService {
         let policy = arguments
             .get("policy")
             .cloned()
-            .map(serde_json::from_value)
+            .map(blazingly_json::from_value)
             .transpose()?
             .unwrap_or_default();
         *self.lock()? = Tracker::new(policy);
@@ -95,7 +95,7 @@ impl BleService {
 
     pub fn observe(&self, arguments: &Value) -> anyhow::Result<Value> {
         let observation: Observation = required(arguments, "observation")?;
-        Ok(serde_json::to_value(self.lock()?.observe(observation))?)
+        Ok(blazingly_json::to_value(self.lock()?.observe(observation))?)
     }
 
     pub fn histories(&self) -> anyhow::Result<Value> {

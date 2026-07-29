@@ -4,7 +4,7 @@ use std::collections::HashMap;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
 
-use serde_json::{json, Value};
+use blazingly_json::{json, Value};
 
 use super::schema::{error_response, rpc_error, rpc_error_with_data, success_response, RpcError};
 use super::transport::RequestContext;
@@ -63,7 +63,7 @@ impl Server {
 
     pub(super) fn handle_line(&self, line: &str, context: &RequestContext) -> Option<String> {
         let line = line.trim_start_matches('\u{feff}');
-        let message: Value = match serde_json::from_str(line) {
+        let message: Value = match blazingly_json::from_str(line) {
             Ok(value) => value,
             Err(error) => {
                 return Some(error_response(
@@ -225,7 +225,7 @@ impl Server {
         Ok(json!({}))
     }
 
-    fn ready_protocol_version(&self) -> Result<&'static str, RpcError> {
+    pub(super) fn ready_protocol_version(&self) -> Result<&'static str, RpcError> {
         let lifecycle = self.lifecycle.lock().unwrap_or_else(|e| e.into_inner());
         if lifecycle.phase != Phase::Ready {
             return Err(rpc_error(

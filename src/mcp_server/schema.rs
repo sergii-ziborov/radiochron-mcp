@@ -1,6 +1,6 @@
+use blazingly_json::{json, Map, Value};
 use serde::de::DeserializeOwned;
 use serde::Serialize;
-use serde_json::{json, Map, Value};
 
 #[derive(Debug)]
 pub(super) struct RpcError {
@@ -55,14 +55,14 @@ pub(super) fn error_response(id: Value, error: RpcError) -> String {
 }
 
 pub(super) fn encode<T: Serialize>(value: &T) -> anyhow::Result<String> {
-    Ok(serde_json::to_string(value)?)
+    Ok(blazingly_json::to_string(value)?)
 }
 
 pub(crate) fn required<T: DeserializeOwned>(arguments: &Value, name: &str) -> anyhow::Result<T> {
     let value = arguments
         .get(name)
         .ok_or_else(|| anyhow::anyhow!("{name} is required"))?;
-    Ok(serde_json::from_value(value.clone())?)
+    Ok(blazingly_json::from_value(value.clone())?)
 }
 
 pub(super) fn reject_unknown_arguments(arguments: &Value, allowed: &[&str]) -> anyhow::Result<()> {
