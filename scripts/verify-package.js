@@ -20,7 +20,16 @@ if (result.status !== 0) {
   process.exit(result.status ?? 1);
 }
 
-const [manifest] = JSON.parse(result.stdout);
+const packResult = JSON.parse(result.stdout);
+const manifests = Array.isArray(packResult)
+  ? packResult
+  : packResult && Array.isArray(packResult.files)
+    ? [packResult]
+    : Object.values(packResult ?? {});
+const manifest = manifests.find((candidate) => candidate && Array.isArray(candidate.files));
+if (!manifest || !Array.isArray(manifest.files)) {
+  throw new Error('npm pack returned an unsupported manifest shape');
+}
 const paths = manifest.files.map((file) => file.path.replaceAll('\\', '/'));
 const forbidden = paths.filter((path) =>
   path.startsWith('target/') ||
