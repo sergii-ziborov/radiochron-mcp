@@ -12,6 +12,11 @@ use std::time::Duration;
 
 pub use transport::serve_stdio;
 
+// The command line reaches the tools and the report through these two entry
+// points and nothing else, so `cli` never touches protocol state.
+pub(crate) use resources::{report_json, report_markdown};
+pub(crate) use tools::{recording_options, run_once, TOOL_NAMES};
+
 pub(super) const LATEST_PROTOCOL_VERSION: &str = "2025-11-25";
 pub(super) const LEGACY_PROTOCOL_VERSION: &str = "2025-06-18";
 pub(super) const SUPPORTED_PROTOCOL_VERSIONS: [&str; 2] =

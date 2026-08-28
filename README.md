@@ -3,11 +3,15 @@
 **[radiochron.com](https://radiochron.com)** · the chronicle of your radio.
 
 A local-first [Model Context Protocol](https://modelcontextprotocol.io) server
-for Wi-Fi incident diagnosis and Bluetooth Low Energy observation. It combines
-native radio collection with the
+**and command line** for Wi-Fi incident diagnosis and Bluetooth Low Energy
+observation. It combines native radio collection with the
 [`radiochron`](https://github.com/sergii-ziborov/radiochron) Rust core, then
 returns typed conclusions instead of forcing an assistant to interpret raw
 operating-system output.
+
+The two front ends are not two implementations. `radiochron analyze` and the
+`wifi_analyze` tool run the same handler with the same bounds and the same error
+text, so a conclusion never depends on how you asked for it.
 
 The preferred MCP revision is `2025-11-25`; clients that request
 `2025-06-18` receive the compatible legacy tool shape. Every tool has input and
@@ -19,7 +23,7 @@ RadioChron repositories remain independent:
 
 - [`radiochron`](https://github.com/sergii-ziborov/radiochron) is the Rust/IoT core.
 - [`radiochron-js`](https://github.com/sergii-ziborov/radiochron-js) is the Node/npm library; it does not ship MCP.
-- [`radiochron-mcp`](https://github.com/sergii-ziborov/radiochron-mcp) is this pure-Rust MCP server.
+- [`radiochron-mcp`](https://github.com/sergii-ziborov/radiochron-mcp) is this pure-Rust MCP server and command line.
 - [`radiochron-agent`](https://github.com/sergii-ziborov/radiochron-agent) is the unattended durable collector/exporter and does not depend on MCP.
 - [`radiochron-electron`](https://github.com/sergii-ziborov/radiochron-electron) is the standalone desktop app and does not depend on MCP.
 
@@ -56,6 +60,49 @@ Register an installed binary with any stdio MCP client:
 `RADIOCHRON_CHRONICLE_PATH` optionally overrides the local chronicle path:
 `%LOCALAPPDATA%\RadioChron` on Windows, `~/Library/Application
 Support/RadioChron` on macOS, or the XDG state directory on Linux.
+
+## Command line
+
+The same binary is a CLI. Nothing extra to install — `npx radiochron status`
+works from the npm package, and `cargo install` puts `radiochron` on `PATH`.
+
+```sh
+radiochron status                  # association state of every adapter
+radiochron scan                    # look again, then list what is there
+radiochron analyze                 # findings about the environment
+radiochron report                  # the full Markdown diagnostic report
+radiochron incident --ble          # one composite answer for "the Wi-Fi is broken"
+radiochron connectivity --dns example.com --tcp example.com:443
+radiochron ble scan --duration 4000
+radiochron chronicle recent --max 20
+radiochron --help                  # every command and flag
+```
+
+Add `--json` to any command for the raw tool result, which is what a script
+wants:
+
+```sh
+radiochron networks --json | jq '.networks[] | select(.rssi_dbm > -60) | .ssid'
+```
+
+`radiochron tool <name> [--args '<json>']` reaches any tool the catalogue
+publishes, including ones with no friendly spelling:
+
+```sh
+radiochron tool ble_evaluate --args '{"now_ms":1717000000000}'
+```
+
+Unknown flags are refused rather than ignored, so a mistyped `--durations`
+fails loudly instead of silently running with a default.
+
+**Running with no arguments still serves MCP over stdio**, exactly as before, so
+every existing client configuration keeps working. A terminal on stdin means a
+person typed the name, and prints help instead; a pipe means a client, and
+speaks the protocol. `radiochron mcp` forces the server explicitly.
+
+Two commands are CLI-only, because they have no session to live in:
+`chronicle record` runs the recorder in the foreground until you stop it, and
+`chronicle path` prints where the journal is kept.
 
 ## Start with one tool
 

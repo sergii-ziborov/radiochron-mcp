@@ -58,6 +58,19 @@ pub(super) fn read(server: &Server, params: &Value) -> Result<Value, RpcError> {
     }))
 }
 
+/// The Markdown report the `radiochron://report/latest` resource serves.
+///
+/// The CLI renders the same bytes an MCP host would pull into context, so the
+/// scan-completeness warning and the BSSID privacy note travel with both.
+pub(crate) fn report_markdown() -> anyhow::Result<String> {
+    render(Format::Markdown)
+}
+
+/// The machine-readable twin of [`report_markdown`], for `report --json`.
+pub(crate) fn report_json() -> anyhow::Result<String> {
+    render(Format::Json)
+}
+
 enum Format {
     Markdown,
     Json,

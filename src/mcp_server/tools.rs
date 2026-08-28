@@ -1,16 +1,18 @@
+mod direct;
 mod incident;
 mod wifi;
-
-use std::time::Duration;
 
 use blazingly_json::{json, Value};
 use mcport::{MethodReply, ServerIdentity, ToolReply, ToolServer};
 use radiochron::wlan;
 
+use direct::recording_bounds;
+pub(crate) use direct::{recording_options, run_once, TOOL_NAMES};
+
 use super::protocol::Server;
 use super::schema::{
-    bounded_i32, bounded_u64, error_response, reject_unknown_arguments, rpc_error,
-    rpc_error_with_data, tool_result, RpcError,
+    bounded_u64, error_response, reject_unknown_arguments, rpc_error, rpc_error_with_data,
+    tool_result, RpcError,
 };
 use super::transport::RequestContext;
 use super::{catalog, resources};
@@ -237,11 +239,8 @@ fn execute(
         "ble_histories" => server.ble.histories(),
         "ble_evaluate" => server.ble.evaluate(arguments),
         "chronicle_start" => {
-            let interval = bounded_u64(arguments, "interval_seconds", 5, 1, 300)?;
-            let threshold = bounded_i32(arguments, "signal_threshold_db", 8, 1, 50)?;
-            server
-                .chronicle
-                .start(Duration::from_secs(interval), threshold)
+            let (interval, threshold) = recording_bounds(arguments)?;
+            server.chronicle.start(interval, threshold)
         }
         "chronicle_stop" => server.chronicle.stop(),
         "chronicle_status" => Ok(server.chronicle.status()),
