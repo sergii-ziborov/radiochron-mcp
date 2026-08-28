@@ -11,14 +11,12 @@
 //! separates the two without a flag anyone has to add to an existing config.
 
 mod args;
+mod chronicle;
 mod commands;
 mod render;
 
 use std::io::IsTerminal;
 
-use args::Flags;
-
-use crate::chronicle::ChronicleService;
 use crate::mcp_server;
 
 const HELP: &str = "\
@@ -117,7 +115,7 @@ pub fn run(argv: &[String]) -> anyhow::Result<()> {
             let value = mcp_server::run_once(&name, &arguments)?;
             render::emit(&name, &value, true)
         }
-        "chronicle" => chronicle(rest, as_json),
+        "chronicle" => chronicle::dispatch(rest, as_json),
         "ble" => {
             let sub = subcommand("ble", rest, &["scan", "histories", "identify"])?;
             call(&sub, &rest[1..], as_json)
@@ -136,57 +134,6 @@ fn call(command: &str, tokens: &[String], as_json: bool) -> anyhow::Result<()> {
     }
     let value = mcp_server::run_once(tool, &arguments)?;
     render::emit(command, &value, as_json)
-}
-
-fn chronicle(tokens: &[String], as_json: bool) -> anyhow::Result<()> {
-    let sub = subcommand("chronicle", tokens, &["recent", "record", "path"])?;
-    let rest = &tokens[1..];
-    match sub.as_str() {
-        "chronicle path" => {
-            Flags::parse(rest, &[], &[])?;
-            let status = ChronicleService::new().status();
-            println!(
-                "{}",
-                status
-                    .get("path")
-                    .and_then(blazingly_json::Value::as_str)
-                    .unwrap_or("unknown")
-            );
-            Ok(())
-        }
-        "chronicle record" => record(rest),
-        _ => call(&sub, rest, as_json),
-    }
-}
-
-/// Record in the foreground until the operator stops it.
-///
-/// The MCP `chronicle_start` tool hands a recorder to a session that outlives
-/// the call. A one-shot process has no such session, so the CLI keeps the
-/// recorder in front of the operator and stops it on demand — which also flushes
-/// and reports, rather than leaving the journal to a killed process.
-fn record(tokens: &[String]) -> anyhow::Result<()> {
-    let flags = Flags::parse(tokens, &["interval", "threshold"], &[])?;
-    let (interval, threshold) =
-        mcp_server::recording_options(flags.integer("interval")?, flags.integer("threshold")?)?;
-
-    let service = ChronicleService::new();
-    let started = service.start(interval, threshold)?;
-    let path = started
-        .get("path")
-        .and_then(blazingly_json::Value::as_str)
-        .unwrap_or("the chronicle");
-    eprintln!(
-        "Recording every {}s to {path}\nPress Enter to stop (Ctrl-C also works).",
-        interval.as_secs()
-    );
-
-    let mut line = String::new();
-    let _ = std::io::stdin().read_line(&mut line);
-
-    let stopped = service.stop()?;
-    println!("{}", blazingly_json::to_string_pretty(&stopped)?);
-    Ok(())
 }
 
 fn report(as_json: bool) -> anyhow::Result<()> {
