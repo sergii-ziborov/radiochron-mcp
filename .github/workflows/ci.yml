@@ -182,20 +182,15 @@ jobs:
       - name: Publish npm package
         if: startsWith(github.ref, 'refs/tags/v')
         env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
           RADIOCHRON_MCP_BINARY_WIN32_X64: ${{ runner.temp }}/win32-x64/radiochron.exe
           RADIOCHRON_MCP_BINARY_LINUX_X64: ${{ runner.temp }}/linux-x64/radiochron
           RADIOCHRON_MCP_BINARY_LINUX_ARM64: ${{ runner.temp }}/linux-arm64/radiochron
           RADIOCHRON_MCP_BINARY_DARWIN_X64: ${{ runner.temp }}/darwin-x64/radiochron
           RADIOCHRON_MCP_BINARY_DARWIN_ARM64: ${{ runner.temp }}/darwin-arm64/radiochron
         run: |
-          # Trusted publishing via OIDC (no NPM_TOKEN). Requires a Trusted Publisher
-          # on npm for this repo + workflow filename ci.yml, and npm CLI >= 11.5.1.
           npm install --global npm@latest
-          npm --version
-          # Drop setup-node's empty _authToken so npm uses OIDC instead of a dead secret.
-          sed -i '/_authToken/d' "$NPM_CONFIG_USERCONFIG"
-          unset NODE_AUTH_TOKEN
-          npm publish --access public
+          npm publish --provenance --access public
       - name: Install pinned MCP Registry publisher
         if: startsWith(github.ref, 'refs/tags/v')
         env:
