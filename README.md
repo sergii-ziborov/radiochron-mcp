@@ -104,6 +104,54 @@ Two commands are CLI-only, because they have no session to live in:
 `chronicle record` runs the recorder in the foreground until you stop it, and
 `chronicle path` prints where the journal is kept.
 
+## MCP versus Node (`radiochron-js`)
+
+They share one Rust core and one incident classifier. They are not stacked.
+
+| Surface | Package | Speaks MCP? | Best for |
+|---|---|---|---|
+| MCP + CLI | `radiochron-mcp` | Yes (stdio) | Assistants, `radiochron doctor`, operator shell |
+| Node/npm | `radiochron` | No | Apps, Electron, services, CI probes |
+
+Desktop imports `radiochron` (npm) only. It must never spawn the MCP server for
+diagnosis — that would duplicate collectors and let cause logic drift.
+
+### Same verdict, two entry points
+
+```sh
+# MCP / CLI — orchestrates collectors, then core::incident::classify
+radiochron doctor --json
+```
+
+```js
+// Node — same classifier, in-process native bridge
+import { getRadioChronCoreClient } from 'radiochron';
+
+const rc = getRadioChronCoreClient();
+const report = await rc.diagnose({ includeBle: false });
+console.log(report.assessment, report.causes);
+```
+
+```js
+// Optional: portable transfer matching MCP incident exports
+import { createIncidentBundle, readIncidentBundle } from 'radiochron';
+
+const bytes = createIncidentBundle({
+  report,
+  producer: {
+    surface: 'node',
+    surface_version: '0.7.0',
+    core_version: '0.6.0'
+  }
+});
+// write bytes to a .rchron file, or round-trip:
+const again = readIncidentBundle(bytes);
+```
+
+An assistant that needs radio evidence should call MCP tools. An application
+that already runs Node should call `radiochron` directly and skip the MCP
+process entirely.
+
 ## Start with one tool
 
 Use `diagnose_incident` first (CLI alias: `radiochron doctor`). The tool
