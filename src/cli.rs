@@ -47,6 +47,7 @@ CONNECTIVITY
            [--session ID] [--moving] [--within S] [--max-events N]
            [--chronicle-max N] and every connectivity flag above
                                     one composite answer for \"the Wi-Fi is broken\"
+  doctor                            alias for incident — same collection and classifier
 
 BLUETOOTH LE
   ble scan [--duration MS] [--sensor-id ID] [--zone Z] [--session ID] [--moving]
@@ -218,6 +219,7 @@ mod tests {
             "sample",
             "connectivity",
             "incident",
+            "doctor",
             "ble scan",
             "ble histories",
             "ble identify",

@@ -50,11 +50,12 @@ pub(super) fn definition(protocol_version: &str) -> Value {
         json!({"type":"object","properties":properties,"additionalProperties":false}),
         output_schema(
             &[
-                "observed_at_epoch_seconds","wifi_status","wifi_analysis","connectivity",
+                "observed_at_epoch_seconds","incident","wifi_status","wifi_analysis","connectivity",
                 "wifi_history","chronicle","ble","problems","limitations",
             ],
             json!({
                 "observed_at_epoch_seconds":{"type":"integer"},
+                "incident":{"type":"object"},
                 "wifi_status":{"type":"object"},"wifi_analysis":{"type":"object"},
                 "connectivity":{"type":"object"},"wifi_history":{"type":"object"},
                 "chronicle":{"type":"object"},"ble":{"type":"object"},

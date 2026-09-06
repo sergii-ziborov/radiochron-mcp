@@ -4,7 +4,7 @@ description = "Pure-Rust MCP server for Wi-Fi incident diagnostics and native BL
 keywords = ["mcp", "wifi", "bluetooth", "diagnostics", "model-context-protocol"]
 categories = ["command-line-utilities", "network-programming"]
 readme = "README.md"
-version = "0.6.0"
+version = "0.7.0"
 edition = "2021"
 rust-version = "1.78"
 authors = ["Sergii Ziborov"]
@@ -19,12 +19,15 @@ path = "src/main.rs"
 [dependencies]
 # Pin the engine revision so a released MCP binary always has a reproducible
 # collector/analysis implementation independent of future core changes.
-radiochron = { version = "=0.5.0", features = ["ble"] }
+radiochron = { git = "https://github.com/sergii-ziborov/radiochron", rev = "83865e2", default-features = true, features = ["ble", "incident"] }
 radiochron-native-ble = "0.1.0"
 serde = { version = "1", features = ["derive"] }
 blazingly-json = "0.1.0"
 mcport = "0.3.0"
 anyhow = "1"
+
+[patch.crates-io]
+radiochron = { git = "https://github.com/sergii-ziborov/radiochron", rev = "83865e2" }
 
 [profile.release]
 lto = "thin"

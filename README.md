@@ -106,7 +106,9 @@ Two commands are CLI-only, because they have no session to live in:
 
 ## Start with one tool
 
-Use `diagnose_incident` first. One request returns independent sections for:
+Use `diagnose_incident` first (CLI alias: `radiochron doctor`). The tool
+orchestrates collectors and asks the shared core classifier for one incident
+verdict. The response keeps independent sections for:
 
 - current Wi-Fi interfaces and association;
 - RF/environment analysis;

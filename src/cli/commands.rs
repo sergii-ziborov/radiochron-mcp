@@ -69,7 +69,7 @@ pub(super) fn tool_call(command: &str, tokens: &[String]) -> anyhow::Result<(&'s
             connectivity(&mut fields, &flags)?;
             "connectivity_diagnose"
         }
-        "incident" => {
+        "incident" | "doctor" => {
             let values: Vec<&str> = CONNECTIVITY_VALUES
                 .iter()
                 .copied()
@@ -251,6 +251,12 @@ mod tests {
         assert_eq!(arguments["include_ble"], true);
         assert_eq!(arguments["dns_name"], "example.com");
         assert_eq!(arguments["zone"], "lab");
+    }
+
+    #[test]
+    fn doctor_is_an_alias_for_incident() {
+        let (tool, _) = tool_call("doctor", &[]).unwrap();
+        assert_eq!(tool, "diagnose_incident");
     }
 
     #[test]

@@ -16,9 +16,9 @@ checksum = "b588b76d00fde79687d7646a9b5bdf3cc0f655e0bbd080335a95d7e96f3587da"
 
 [[package]]
 name = "blazingly-json"
-version = "0.1.0"
+version = "0.1.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2af6e9703e92d191d4a44c9e7da2ea0aded836b109fdc9a3b9d04146a36f94f7"
+checksum = "5618687e484d328bf702daf2a4472292204d11e5b2d58dc5bfc6e16434c13923"
 dependencies = [
  "itoa",
  "lexical-core",
@@ -207,9 +207,9 @@ dependencies = [
 
 [[package]]
 name = "pkg-config"
-version = "0.3.33"
+version = "0.3.34"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "19f132c84eca552bf34cab8ec81f1c1dcc229b811638f9d283dceabe58c5569e"
+checksum = "f6b464fbc74e149a392436b17d523f769e057cb6877f6a5c4618bc6f11800548"
 
 [[package]]
 name = "proc-macro2"
@@ -235,6 +235,15 @@ version = "0.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "6f10ba9ba8b4504c40dbbc126d20c4560cf27a0d98ad848286e59f80df3d8116"
 dependencies = [
+ "serde",
+ "serde_json",
+]
+
+[[package]]
+name = "radiochron"
+version = "0.6.0"
+source = "git+https://github.com/sergii-ziborov/radiochron?rev=83865e2#83865e2fa29267879eb885b84f7ec0a284539ad0"
+dependencies = [
  "anyhow",
  "serde",
  "serde_json",
@@ -242,12 +251,12 @@ dependencies = [
 
 [[package]]
 name = "radiochron-mcp"
-version = "0.6.0"
+version = "0.7.0"
 dependencies = [
  "anyhow",
  "blazingly-json",
  "mcport",
- "radiochron",
+ "radiochron 0.6.0",
  "radiochron-native-ble",
  "serde",
 ]
@@ -263,7 +272,7 @@ dependencies = [
  "objc2",
  "objc2-core-bluetooth",
  "objc2-foundation",
- "radiochron",
+ "radiochron 0.5.0",
  "serde",
  "windows",
 ]
@@ -295,7 +304,7 @@ checksum = "e7a5d71263a5a7d47b41f6b3f06ba276f10cc18b0931f1799f710578e2309348"
 dependencies = [
  "proc-macro2",
  "quote",
- "syn 3.0.2",
+ "syn 3.0.5",
 ]
 
 [[package]]
@@ -324,9 +333,9 @@ dependencies = [
 
 [[package]]
 name = "syn"
-version = "3.0.2"
+version = "3.0.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a207d6d6a2b7fc470b80443726053f18a2481b7e1eee970597051596567987a3"
+checksum = "12df2e0110f65b775f769bb17ef989067a1d931b2eb822bd4346631eeada89f9"
 dependencies = [
  "proc-macro2",
  "quote",
