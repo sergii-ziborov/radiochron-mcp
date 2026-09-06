@@ -231,18 +231,9 @@ dependencies = [
 
 [[package]]
 name = "radiochron"
-version = "0.5.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6f10ba9ba8b4504c40dbbc126d20c4560cf27a0d98ad848286e59f80df3d8116"
-dependencies = [
- "serde",
- "serde_json",
-]
-
-[[package]]
-name = "radiochron"
 version = "0.6.0"
-source = "git+https://github.com/sergii-ziborov/radiochron?rev=83865e2#83865e2fa29267879eb885b84f7ec0a284539ad0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b4bb2f1ecf04fa0a334121c7ee766738e298e3885b6cdb0eaf6ee950eda9d143"
 dependencies = [
  "anyhow",
  "serde",
@@ -256,23 +247,22 @@ dependencies = [
  "anyhow",
  "blazingly-json",
  "mcport",
- "radiochron 0.6.0",
+ "radiochron",
  "radiochron-native-ble",
  "serde",
 ]
 
 [[package]]
 name = "radiochron-native-ble"
-version = "0.1.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "36175e25e8d75aab210b4220267eac0c812d0c66f3cfdf6d83c63547f3286f29"
+version = "0.1.1"
+source = "git+https://github.com/sergii-ziborov/radiochron-native-ble?rev=8e5baba#8e5baba50fec05a74fcdfea7b9090e89ecd1ce2a"
 dependencies = [
  "dbus",
  "dispatch2",
  "objc2",
  "objc2-core-bluetooth",
  "objc2-foundation",
- "radiochron 0.5.0",
+ "radiochron",
  "serde",
  "windows",
 ]

@@ -99,7 +99,10 @@ pub(super) fn diagnose(
                         findings
                             .iter()
                             .filter_map(|finding| {
-                                finding.get("id").and_then(Value::as_str).map(str::to_string)
+                                finding
+                                    .get("id")
+                                    .and_then(Value::as_str)
+                                    .map(str::to_string)
                             })
                             .collect()
                     })
