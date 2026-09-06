@@ -3,12 +3,14 @@
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use blazingly_json::{json, Map, Value};
-use radiochron::incident::{
-    ConnectivityEvidence, EvidenceSection, HistoryEvidence, IncidentEvidence,
-};
+use radiochron::incident::{ConnectivityEvidence, EvidenceSection, IncidentEvidence};
 
 use super::super::super::schema::{bounded_optional_string, bounded_u64, optional_bool};
+
+#[cfg(windows)]
 use super::super::wifi;
+#[cfg(windows)]
+use radiochron::incident::HistoryEvidence;
 
 pub(super) const CONNECTIVITY_ARGS: &[&str] = &[
     "dns_name",

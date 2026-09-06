@@ -20,7 +20,7 @@ path = "src/main.rs"
 # Pin the engine revision so a released MCP binary always has a reproducible
 # collector/analysis implementation independent of future core changes.
 radiochron = { version = "=0.6.0", default-features = true, features = ["ble", "incident"] }
-radiochron-native-ble = { git = "https://github.com/sergii-ziborov/radiochron-native-ble", rev = "8e5baba" }
+radiochron-native-ble = "0.1.1"
 serde = { version = "1", features = ["derive"] }
 blazingly-json = "0.1.0"
 mcport = "0.3.0"
